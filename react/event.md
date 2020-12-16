@@ -97,3 +97,10 @@ class LiggingButton extends React.Component {
 위 두 줄은 동등하며 각각 화살표 함수와 Function.prototype.bind를 사용합니다.
 
 두 경우 모두 React 이벤트를 나타내는 e 인자가 ID 뒤에 두번째 인자로 전달 됩니다. 화살표 함수를 사용하면 명시적으로 인자를 전달해야 하지만 bind를 사용할 경우 추가 인자가 자동으로 전달됩니다.
+
+이미지에도 onload를 할 수 있다.
+
+이 이벤트 핸들러는 이미지 로딩이 완료 되었을때 발생한다.
+발생하는 시점을 잡으면
+
+한방에 잡을 수 있다.
