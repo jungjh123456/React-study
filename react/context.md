@@ -151,3 +151,55 @@ Provider 컴포넌트는 value prop을 받아서 이 값을 하위에 있는 컴
 Provider 하위에서 context를 구독하는 모든 컴포넌트는 Provider의 value prop가 바뀔 때마다 다시 렌더링 됩니다. Provider로 부터 하위 consumer(.contextType와 useContext을 포함한)로의 전파는 shouldComponentUpdate 메서드가 적용되지 않으므로 상위 컴포넌트가 업데이트를 건너 뛰더라도 consumer가 업데이트 됩니다.
 
 context값의 바뀌었는지 여부는 Object.js와 동일한 알고리즘을 사용해 이전 값과 새로운 값을 비교해 측정됩니다.
+
+## Class.contextType
+
+```js
+class MyClass extends React.Component {
+	componentDidMount() {
+		let value = this.context;
+		/* MyContext의 값을 이용한 코드 */
+	}
+	componentDidUpdate() {
+		let value = this.context;
+		/* ... */
+	}
+	componentWillUnmount() {
+		let value = this.context;
+		/* ... */
+	}
+	render() {
+		let value = this.context;
+		/* ... */
+	}
+}
+MyClass.contextType = MyContext;
+```
+
+React.createContext()로 생성한 Context 객체를 원하는 클래스의 contextType 프로퍼티로 지정할 수 있습니다.
+
+그러면 그 클래스 안에서 this.context를 이용해 해당 Context의 가장 가까운 Provider를 찾아 그 값을 읽을 수 있게 됩니다. 이 값은 render를 포함한 모든 컴포넌트 생명주기 매서드에서 사용할 수 있습니다.
+
+```js
+class MyClass extends React.Component {
+	static contextType= MyContext;
+	render() {
+		let value = this.context;
+		/*context 값을 이용한 렌더링*/}
+	}
+}
+```
+
+Context.Consumer
+
+```js
+<MyContext.Consumer>
+{value => /*context 값을 이용한 렌더링*/}
+</MyContext.Consumer>
+```
+
+context변화를 구독하는 React 컴포넌트입니다. 함수 컴포넌트안에서 안에서 context를 읽기 위해서 쓸 수 있습니다.
+
+Context.Consumer의 자식은 함수여야합니다. 이 함수는 context의 현재값을 받고 React 노드를 반환합니다. 이 함수가 받는 value 매개변수 값은 해당 context의 Provider 중 상위 트리에서 가장 가까운 Provider의 value prop과 동일합니다. 상위에 Provider가 없다면 value 매개변수 값은 createContext()에 보냈던 defaultValue와 동일할 것입니다.
+
+> 함수를 자식으로 받는 패턴에 대해서는 render props를 참조하세요.
