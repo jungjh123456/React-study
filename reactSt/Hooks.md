@@ -403,7 +403,7 @@ useEffect(() => {
 얘를 실행하는데 전에 return한 함수를 가지고 있었기 때문에 그 return한 함수가 먼저 console.log(`clean up`); 실행 하고 console.log("componentDidMount & componentDidUpdate"); 될 것이다. 즉 다음번에 실행되기 전에 정리할 게 있으면 정리하려고 clean up이라는 말을 쓴다.
 
 ```js
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // state = { count: 0 }
 export default function Example5() {
@@ -452,7 +452,7 @@ export default function Example5() {
 이러면 최초의 name이 뜰 것이다. 하지만 버튼을 눌려도 뜨지 않는다. 다시 렌더를 안하니까
 
 ```js
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // state = { count: 0 }
 export default function Example5() {
@@ -502,7 +502,248 @@ export default function Example5() {
 
 이때 한번더 누르면 [count]-cleanup 1이 찍히고 count 2가 찍 힐 것이다.
 
+함수 컴포넌트에서 라이프사이클을 사용할 수 있다로 이해하지 말고 딱 3가지 요소를 기억하자
+
+```js
+useEffect(()=> {
+	// 렌더 된 직 후에 실행
+	return ... // 다시 변경이 일어났을때 cleanup이 실행된다.
+} []) // 이 배열에 의해서 시점인지 기록
+
+```
+
+방금 했던걸 보면
+
+첫번째 렌더링때 리엑트가 컴포넌트한테 state가 0일때의 UI를 준비하라고 하면 컴포넌트가 JSX로 리엑트한테 결과물로 주면서 useEffect안에 함수 실행하는 거 잊지 말라고 하고 리액트는 브라우저한테 말을 하고 브라우저는 응답을 한다. 그리고 화면에 그려준다. 다 그리고 나서 리액트는 useEffect를 실행한다.
+다시 클릭 후 랜더링을 하면 브라우저의 클릭한 아이가 컴포넌트에서 지정한 함수로 지정하면서 setState를 1로 지정한 것을 호출할 것이다.
+그러면 다시 리액트가 1로 할 거니까 컴포넌트한테 요청하고 1로 변한 jsx와 이팩트를 요청한다. 그리고 리액트가 받고 나서 브라우저에게 알려주고 다시 리액트가 useEffect를 실행 할 것이다.
+
 ## Custom Hooks (내가 만든 훅)
+
+나만의 훅을 만들어 보자.
+
+그래서 src에 hooks 폴더를 만들어 보자.
+그리고 useWindowWidth.js파일을 만들자.
+
+useWindowWidth.js
+
+```js
+export default function useWindowWidth() {
+	const [width] = useState(window.innerWidth);
+
+	return width;
+}
+```
+
+훅의 특징은 다른 훅에서 사용할 수 있고 함수 컴포넌트에서 사용할 수 있다.
+Example5.jsx로 돌아가서 만든 훅을 적용해보자.
+
+Example5.jsx
+
+```js
+import { useEffect, useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+
+// state = { count: 0 }
+export default function Example5() {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const width = useWindowWidth();
+
+	// 2개의 인자를 받는다. 하나는 함수 이 아이는 시점이 없다.
+	useEffect(() => {
+		console.log("componentDidMount & componentDidUpdate");
+		return () => {
+			console.log(`clean up`);
+		};
+	}); // 시점을 지정하지 않으면 무조건 랜더 된 직후를 의미 한다.
+
+	// 2번째 인자로 빈 배열을 넣으면 componentDidMount만 실행한다. 즉 함수는 실행되는 아이(한일?)를 의미하고 2번째 인자인 배열은 시점을 이야기 하는 것이다.(언제의 뜻?)
+	useEffect(() => {
+		console.log("componentDidMount");
+
+		return () => {
+			console.log("componentWillUnmount");
+		}; // 함수를 리턴을 한다. 함수를 반환하면 해당 함수는 다음 랜더를 하기 전에 실행한다.
+	}, []); // 시점이 빈 배열이면 최초에 렌더 된 직후를 의미(의존성?)
+
+	useEffect(() => {
+		console.log("[count]", count);
+
+		return () => {
+			console.log("[count] - cleanup", count);
+		};
+	}, [count]);
+
+	return (
+		<div>
+			<h2>
+				{name} - {width}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		// setState => 두 번째 배열 요소
+		// setState({ count: state.count + 1 }); // 이렇게 도 사용할 수 있고 함수로도 사용가능하다.
+		setState(count + 1);
+	}
+}
+```
+
+이렇게 하면 name 옆에 현재 가로값이 나올 것이다.
+위에서 하고 싶었던 거는 가로값을 줄었다 늘렸다하면 가로 값이 화면에서 나오게 하는 훅을 만들고 싶은 거다.
+
+그래서 다른 컴포넌트를 만들어서 해보자.
+Example6.jsx 를 만들자.
+
+```js
+import { useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+
+// state = { count: 0 }
+export default function Example5() {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const width = useWindowWidth();
+
+	return (
+		<div>
+			<h2>
+				{name} - {width}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		// setState => 두 번째 배열 요소
+		// setState({ count: state.count + 1 }); // 이렇게 도 사용할 수 있고 함수로도 사용가능하다.
+		setState(count + 1);
+	}
+}
+```
+
+커스텀 훅이 왜 나왔나? 상태에 대한 로직을 재사용하기 어렵다.
+재사용을 위해서 따로 때어내는 행위를 하는 것이다.
+useWindowWidth는 이렇게 사용할 수 있다.
+
+```js
+import { useEffect, useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+
+// state = { count: 0 }
+export default function Example5() {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const [width, setWidth] = useState(window.innderWidth);
+
+	// 우리가 화면 크기를 줄이거나 늘릴때 알아차리는건 window객체이다. 즉 render 직후에 이벤트를 달아줘야한다.
+
+	useEffect(() => {
+		const resize = () => {
+			setWidth(window.innerWidth);
+		};
+		window.addEventListener("resize", resize); // reference를 넣어야하기 때문에 함수를 만들어서 참조값을 갖고 있는 식별자를 넣는다.
+		return () => {
+			window.removeEventListener("resize", ㄱㄷ냨ㄷ);
+		};
+	}, []);
+
+	return (
+		<div>
+			<h2>
+				{name} - {width}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		// setState => 두 번째 배열 요소
+		// setState({ count: state.count + 1 }); // 이렇게 도 사용할 수 있고 함수로도 사용가능하다.
+		setState(count + 1);
+	}
+}
+```
+
+이렇게 만들 수 있다.
+
+```js
+const [width, setWidth] = useState(window.innderWidth);
+
+// 우리가 화면 크기를 줄이거나 늘릴때 알아차리는건 window객체이다. 즉 render 직후에 이벤트를 달아줘야한다.
+
+useEffect(() => {
+	const resize = () => {
+		setWidth(window.innerWidth);
+	};
+	window.addEventListener("resize", resize); // reference를 넣어야하기 때문에 함수를 만들어서 참조값을 갖고 있는 식별자를 넣는다.
+	return () => {
+		window.removeEventListener("resize", ㄱㄷ냨ㄷ);
+	};
+}, []);
+```
+
+이 부분을 우리가 만든 useWindowWidth.js에 그대로 합치자
+
+uswWindowWidth.js
+
+```js
+import { useEffect, useState } from "react";
+export default function useWindowWidth() {
+	const [width, setWidth] = useState(window.innderWidth);
+
+	// 우리가 화면 크기를 줄이거나 늘릴때 알아차리는건 window객체이다. 즉 render 직후에 이벤트를 달아줘야한다.
+
+	useEffect(() => {
+		const resize = () => {
+			setWidth(window.innerWidth);
+		};
+		window.addEventListener("resize", resize); // reference를 넣어야하기 때문에 함수를 만들어서 참조값을 갖고 있는 식별자를 넣는다.
+		return () => {
+			window.removeEventListener("resize", ㄱㄷ냨ㄷ);
+		};
+	}, []);
+	return width;
+}
+```
+
+이렇게 옮기고 Example6.jsx 에서
+
+```js
+import { useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+
+// state = { count: 0 }
+export default function Example5() {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const width = useWindowWidth();
+
+	return (
+		<div>
+			<h2>
+				{name} - {width}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		// setState => 두 번째 배열 요소
+		// setState({ count: state.count + 1 }); // 이렇게 도 사용할 수 있고 함수로도 사용가능하다.
+		setState(count + 1);
+	}
+}
+```
+
+이렇게 간단한 윈도우의 가로값을 가져오는 훅을 만들었다.
 
 ## Additional Hooks (추가적인 훅)
 
