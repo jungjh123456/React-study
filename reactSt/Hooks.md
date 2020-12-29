@@ -745,10 +745,242 @@ export default function Example5() {
 
 이렇게 간단한 윈도우의 가로값을 가져오는 훅을 만들었다.
 
+훅은 다른 훅에서 사용하거나 함수 컴포넌트에서만 사용할 수 있다.
+
+custom훅은 useState와 useEffect로 이루어 진다.
+
+하나 더 만들어 보자.
+
+hoc로 만든 withHasMounted와 훅으로 만든 useHasMounted를 만들어서 비교해 보자.
+
+처음에는 HOC를 만들자.
+
+폴더를 만들고 withHasMounted.js를 만들자.
+그리고 hocks폴더 안에도 하나 만들자 useHasMounted.js를 하나 만들자.
+
+withHasMounted.js
+
+```js
+import React from "react";
+export default function withHasMounted(Component) {
+	class C extends React.Component {
+		state = {
+			hasMounted: false,
+		};
+
+		render() {
+			return <Component {...this.props} hasMounted={this.state.hasMounted} />;
+		}
+		componentDidMount() {
+			this.setState({ hasMounted: true });
+		}
+	}
+
+	return C;
+}
+```
+
+Example6.jsx에서 써보자.
+
+```js
+import { useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+import withHasMounted from "../hocks/withHasMounted";
+
+function Example6(props) {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const width = useWindowWidth();
+
+	return (
+		<div>
+			<h2>
+				{name} - {width} - {props.hasMounted.toString()}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		setState(count + 1);
+	}
+}
+// state = { count: 0 }
+export default withHasMounted(Example6);
+```
+
+이렇게 만든 아이를 훅으로 만들자.
+
+useHasMounted.js
+
+```js
+export default function useHasMounted() {
+	const [hasMounted, setHasMounted] = useState(false);
+
+	useEffect(() => {
+		setHasMounted(true);
+	}, []);
+	return hasMounted;
+}
+```
+
+이렇게 하면 훅이 만들어 진다.
+
+Example6.jsx
+
+```js
+import { useState } from "react";
+import useWindowWidth from "../hooks/useWindowWidth";
+import withHasMounted from "../hocks/withHasMounted";
+
+function Example6(props) {
+	const [count, setCount] = useState(0);
+	const [name, setName] = useState("Mark");
+
+	const width = useWindowWidth();
+	const hasMounted = useHasMounted();
+
+	return (
+		<div>
+			<h2>
+				{name} - {width} - {props.hasMounted.toString()}
+			</h2>
+			<p>You clicked {state.count} times</p>
+			<button onClick={this.click}>Click me</button>
+		</div>
+	);
+	function click() {
+		setState(count + 1);
+	}
+}
+// state = { count: 0 }
+export default withHasMounted(Example6);
+```
+
+이렇게 보면 차이점이 드러난다. hoc를 사용할 때마다 컴포넌트를 감싸서 하나의 컴포넌트를 만든다. 즉 많이 사용하면 컴포넌트가 계속 랩핑된다. 그래서 새로운 용어가 나왔다.
+예전에 콜백 핼이라 불렸던 것 처럼 랩핑 핼이 나왔다.
+
+이와 다르게 훅은 다르게 랩핑을 하는 일이 없이 하나의 state를 사용하는데 로직만 따로 분리를 해서 간편하게 useHasMounted에 옮겨 놓았다.
+그래서 HOC를 떠나서 hooks로 오는 것이다.
+
+> 왜 hoc보다 더 hooks를 더 선호하냐?
+
+    HOC를 사용하면 변화되는 데이터를 프롭스로 관리하는데 그 프롭스를 위해서 계속 컴포넌트를 랩핑하는 과정이 생기는데 그 과정에서의 복잡조도 증가하고 불필요한 랩핑으로 인해서 디버깅도 힘들다.
+
+## 컴포넌트 간 통신
+
+컴포넌트를 많이 만들 예정이다. 컴포넌트 안에서의 로직을 만드는 것도 중요하지만 컴포넌트 간에 통신하는 것도 골머리를 아프게 된다.
+
+### 하위 컴포넌트를 변경하기
+
+만약 A의 버튼을 클릭해서 B안에 있는 C안에 있는 D안에 있는 E의 value를 바꾸고 싶으면
+
+1. <A /> 컴포넌트에서 button 에 onClick이벤트를 만들고,
+2. button 을 클릭하면, <A /> 의 state를 변경하여, <B />로 내려주는 props를 변경
+3. <B />의 props 가 변경되면, <C />의 props에 전달
+4. <C /> 의 props가 변경되면, <D />의 props로 전달
+5. <D />의 props가 변경되면, <E />의 props로 전달
+
+이렇게 주고 받고 주고 받으니 골머리를 때린다.
+
+### 상위 컴포넌트를 변경하기
+
+E의 button를 클릭하여 A의 p를 변경하려면
+
+1. <A />에 함수를 만들고, 그 함수 안에 state를 변경하도록 구현, 그 변경으로 인해 p안의 내용을 변경
+2. 만들어진 함수를 props에 넣어서, <B />로 전달.
+3. <B />의 props의 함수를 <C />의 props로 전달
+4. <C />의 porps의 함수를 <D />의 props로 전달.
+5. <D />의 props의 함수를 <E />의 props 로 전달, <E />에서 클릭하면 props 로 받은 함수를 실행
+
+```js
+import React from "react";
+
+class A extends React.Component {
+	state = {
+		value: "아직 안바뀜",
+	};
+
+	render() {
+		// B에게 change props로 전달한다.
+		console.log("A render");
+		return (
+			<div>
+				<h3>{this.state.value}</h3>
+				<B change={this.change} />
+			</div>
+		);
+	}
+
+	change = () => {
+		this.setState({
+			value: "A 의 값을 변경",
+		});
+	};
+}
+
+export default A;
+
+const B = (props) => (
+	<div>
+		<p>여긴 B</p>
+		<C {...props} />
+	</div>
+);
+
+const C = (props) => (
+	<div>
+		<p>여긴 C</p>
+		<D {...props} />
+	</div>
+);
+
+const D = (props) => (
+	<div>
+		<p>여긴 D</p>
+		<E {...props} />
+	</div>
+);
+
+const E = (props) => {
+	function click() {
+		props.change(); // 받아서 실행을 한다.
+	}
+	return (
+		<div>
+			<p>여긴 E</p>
+			<button onClick={click}>클릭</button>
+		</div>
+	);
+};
+```
+
+E에서 받아서 실행하면 value값이 바뀌고 부모가 바뀌었으니 자식도 다시 바뀐다. 이게 계속 반복이 된다.
+
+state는 최상단 부모한테 있어야지 컴포넌트 간에 커뮤니케이션이 활성화 된다.
+
+관리하는데 너무 복잡해 진다.(찾기도 어렵다.)
+
+그래서 나온게 Context API 이다. withRouter랑 비슷하다.
+
+## Context API
+
+Context API를 사용하면 위아래 관계에 없어도 점프할 수 있다. 그런 개념이다. 점프 할 수 있는 기능을 준다는 것만 기억하자.
+
+데이터를 조작하거나 있는 곳은 가장 부모에서 하는 일이 모든 곳에 다 전파 되어야 하는 상황이다. 가장 부모와 해당 데이터를 변경하는 함수를 사용하는 아이가 저 멀리 어딘가 있고 저 멀리 어딘가에 있는 아이와 이 부모가 만든 메서드 데이터를 연결하는 행위가 힘들다 그래서 Context API는 가장 상위에 데이터와 그 데이터를 바꾸는 아이를 두는 것 이다.
+
+그 아이를 다른 컨포넌트한테 주는 방법은 그 컨텍스트에서 가져와 하면 가져올 수 있다.
+그래서 데이터를 Set하는 놈이 있어야 한다. (Provider) Set하는 놈은 최상단 부모이다. 최상단 부모에다가 Set을 하면 된다.
+보통 ErrorBoundary 바로 밑에 있다. (Set하는 놈) 그 Set하는 놈을 프로바이더라고 한다. (주는 놈)
+
+데이터를 GET 하는 놈
+
+- 모든 하위 컴포넌트에서 접근 가능
+- 컨슈머로 하는 방법 (컨슈머는 소비자 받아서 쓰는 놈)
+  - 클래스 컴포넌트의 this.context 로 하는 방법
+  - 펑셔널 컴포넌트의 useContext 로 하는 방법
+
 ## Additional Hooks (추가적인 훅)
 
 useReducer, useCallback, useMemo, useRef
-
-```
-
-```
