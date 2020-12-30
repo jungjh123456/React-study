@@ -253,11 +253,10 @@ function todoApp(previousState, action) {
 
 ```js
 
-// 언제 실행 되나?
-// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
-
 import { ADD_TODO } from "./actions";
 
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
 // 2. 액션이 날라왔을 때
 function todoApp(previousState, action) { 
   // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
@@ -291,6 +290,95 @@ function todoApp(previousState, action) {
 이때까지 놀라운건 지금까지 import redux를 한적이 없다.
 
 액션에서 addTodo를 쓴 적이 없다. 지금까지 한번도 발생시킨적이 없기 때문이다. reducer를 만들때 발생하는게 아니라 누가 발생시키는 건가? 그것은 리엑트 컴포넌트가 클릭을 했을때  addTodo를 넣는다 이런 식이다.
+
+
+
+## createStore
+
+store가 중요하다. redux로 부터 import를 하는 함수이다.
+
+```js
+const store = createStore(리듀서);
+```
+
+우리가 만든 리유서인 todoApp이라는 리듀서이다. 그래서 todoApp이라는 리듀서를 인자로 넣고 createStore를 실행하면 그 결과로 Store가 나온다.
+
+- createStore 아이는 이런 타입을 가지고 있다.
+
+  - 첫번째 인자로 reducer: Reducer를 받고
+  - 두번째 인자로 preloadedState를 받고
+  - 세번째 인자로 enhancer?: StoreEnhancer을 받는다.
+
+  지금은 두번째인자 세번째 인자는 사용을 안하고 Reducer만 가지고 실행을 할 것이다.
+
+  enhancer는 나중에 자세히 공부 할 것이다.
+
+  두번째 인자는 최초에 previousState가 undefined인데 2번째 인자를 뭔가를 넣으면 previousState가 undefined가 아니게 된다.
+
+
+
+### 스토어 만들기
+
+src에 store.js를 만들자.
+
+
+
+```js
+import { createStore } from 'redux';
+
+const store = createStore()
+```
+
+해서 createStore에 첫 번째 인자로 우리가 만든 리듀서를 넣는다. reducers.js에서 export해서 사용해 보자.
+
+
+
+reducers.js
+
+```js
+
+import { ADD_TODO } from "./actions";
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, action.text];
+  }
+  
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+
+
+store.js
+
+
+
+```js
+import { createStore } from 'redux';
+import {todoApp} from './reducers';
+
+const store = createStore(todoApp)
+
+export default store;
+```
+
+이렇게 만들자.
+
+
+
+
 
 
 
