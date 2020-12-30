@@ -20,7 +20,7 @@ class로 만드는 컴포넌트를 만들자.
 
 Example1.jsx
 
-```js
+```react
 import React from 'react';
 
 export default class Example1 extends React.Component {
@@ -44,7 +44,7 @@ export default class Example1 extends React.Component {
 
 App.js
 
-```js
+```react
 function App() {
 	return <Example1 />;
 }
@@ -55,7 +55,7 @@ function App() {
 
 함수 컴포넌트를 만들기 위해 Example2.jsx 를 만들자.
 
-```js
+```react
 import { useState } from "react";
 
 export default function Example2() {
@@ -76,7 +76,7 @@ export default function Example2() {
 
 App.js
 
-```js
+```react
 function App() {
 	return (
 		<>
@@ -97,7 +97,7 @@ setCount가 불리면 어떻게 되냐? 새로운 count값을 바꾸고 그 coun
 
 다시 새로운 Newfile 해서 Example3.jsx를 만들자.
 
-```js
+```react
 import { useState } from "react";
 
 // state = { count: 0 }
@@ -118,7 +118,7 @@ export default function Example3() {
 }
 ```
 
-```js
+```react
 function App() {
 	return (
 		<>
@@ -156,7 +156,7 @@ Example1에서 클래스에서 보면 this.state는 결국에는 이전상태에
 
 [useEffect관련자료](https://rinae.dev/posts/a-complete-guide-to-useeffect-ko)
 
-```js
+```react
 function Counter() {
 	const [count, setCount] = useState(0);
 	function handleAlertClick() {
@@ -190,7 +190,7 @@ function Counter() {
 
 componentDidMount, componentDidUpdate는 밑에와 같이 사용한다.
 
-```js
+```react
 import React from "react";
 
 export default class Example4 extends React.Component {
@@ -225,7 +225,7 @@ useEffect를 가지고 이용해 보자.
 
 Exampe5.jsx를 만들어 보자.
 
-```js
+```react
 import { useState } from "react";
 // state = { count: 0 }
 export default function Example5() {
@@ -253,7 +253,7 @@ export default function Example5() {
 이렇게 하면 useEffect 가 콘솔에 한번 뜬다. componentDidMount의 의미이다. 그리고 클릭을 하면 componentDidUpdate의 의미이다.
 componentDidMount만 하고 싶으면
 
-```js
+```react
 import { useState } from "react";
 // state = { count: 0 }
 export default function Example5() {
@@ -288,7 +288,7 @@ export default function Example5() {
 
 그리고 componentWillUnmount를 할 것이다 즉 컴포넌트가 사라질때 componentWillUnmont가 한다.
 
-```js
+```react
 import { useState } from "react";
 // state = { count: 0 }
 export default function Example5() {
