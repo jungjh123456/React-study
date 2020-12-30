@@ -30,4 +30,4 @@
 
 스토어라고 부르면 보통은 state와 state를 바꾸는 로직을 한꺼번에 담고 있는 아이라고 생각 하면 된다.
 
-![image-20201230212116614](/Users/apple/Library/Application Support/typora-user-images/image-20201230212116614.png)
+![image-20201230212116614](/./img/image-20201230212116614.png)
