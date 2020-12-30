@@ -981,6 +981,264 @@ Context API를 사용하면 위아래 관계에 없어도 점프할 수 있다. 
   - 클래스 컴포넌트의 this.context 로 하는 방법
   - 펑셔널 컴포넌트의 useContext 로 하는 방법
 
+사용하기 위해서 create-react-app을해서 새로운 프로젝트를 만들고 시작하자.
+
+1단계로 컨텍스트를 생성한다.
+
+폴더를 하나 만든다.
+
+contexts폴더를 생성 그 안에다가 PersonContext.js를 만들자.
+
+PersonContext.js
+
+```js
+import React from "react";
+
+// context를 생성하는 API를 생성하자.
+
+const PersonsContext = React.createContext(); // 이게 context이다.
+
+//공유하기 위해 내보내자.
+export default PersonContext;
+```
+
+PersonContext.Provider를 사용한다는 것이다. 이것을 어디서 사용할까?
+
+데이터를 set하는 놈을 어디서 한다고 했죠? 그건 가장 상위 컴포넌트에 하는 것이다. (그래야 하위 컴포넌트에서 받아서 사용할 수 있기 때문에)
+
+index.js로 가서 Provider를 감싸서 value를 설정하자.
+index.js
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import PersonContext from "./contexts/PersonContext";
+
+ReactDOM.render(
+	<React.StricMode>
+		<PersonContext.Provider>
+			<App />
+		</PersonContext.Provider>
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+위 처럼 넣어 준다. 그리고 이제 value를 setting해주자.(데이터를 setting)
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import PersonContext from "./contexts/PersonContext";
+
+const persons = [
+	{ id: 0, name: "Mark", age: 38 },
+	{ id: 1, name: "Hanna", age: 27 },
+];
+
+ReactDOM.render(
+	<React.StricMode>
+		<PersonContext.Provider value={persons}>
+			<App />
+		</PersonContext.Provider>
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+이렇게 value를 넣자.
+<PersonContext.Provider value={persons}> 이 부모 밑에 있는 아이들은 props를 안넣어도 value를 사용할 수 있다.
+
+그러면 components폴더를 만들어서 Example1.jsx, Example2.jsx, Example3.jsx를 생성해 보자.
+
+Example1.jsx
+
+```js
+import React from "react";
+import PersonContext from "../contexts/PersonContext";
+
+// 데이터를 GET하기 - 컨슈머 사용하기 class function 관계 없음
+
+export default function Example1() {
+	return (
+		// 이 안에 함수를 넣자.
+		<PersonContext.Consumer>
+			{(value) => <p>{JSON.stringify(value)}</p>}
+		</PersonContext.Consumer>
+	);
+}
+```
+
+이렇게 만들고 App.js 에서 가서 만들자.
+
+App.js
+
+```js
+import Example1 from "./components/Example1";
+import "./App.css";
+function App() {
+	return (
+		<div className='App'>
+			<header className='App-header'>
+				<Example1 />
+			</header>
+		</div>
+	);
+}
+```
+
+이렇게 한다. 그러면 value에 대한 데이터가 화면에 나올것이다.
+
+p태그를 ul로 바꿔 보자.
+
+```js
+import React from "react";
+import PersonContext from "../contexts/PersonContext";
+
+// 데이터를 GET하기 - 컨슈머 사용하기 class function 관계 없음
+
+export default function Example1() {
+	return (
+		// 이 안에 함수를 넣자.
+		<PersonContext.Consumer>
+			{(value) => (
+				<ul>
+					{value.map((person) => (
+						<li>{person.name}</li>
+					))}
+				</ul>
+			)}
+		</PersonContext.Consumer>
+	);
+}
+```
+
+하면 name이 화면에 나올 것이고 이걸 스타일을 적용하면 된다.
+
+이렇게도 사용을 한다. personContext를 직접 들고오지 않고 PersonContext.Consumer를 다른 이름으로 붙어서 걔를 들고 올수 있다.
+
+PersonContext.js 로 가서
+
+```js
+import React from "react";
+
+// context를 생성하는 API를 생성하자.
+
+const PersonsContext = React.createContext(); // 이게 context이다.
+
+//공유하기 위해 내보내자.
+export default PersonContext;
+
+export const { Provider, Consumer } = PersonContext;
+```
+
+PersonContext.Provider를 않쓰고 Provider 가져다가 Provider하면 된다.
+
+index.js
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { Provider } from "./contexts/PersonContext";
+
+const persons = [
+	{ id: 0, name: "Mark", age: 38 },
+	{ id: 1, name: "Hanna", age: 27 },
+];
+
+ReactDOM.render(
+	<React.StricMode>
+		<Provider value={persons}>
+			<App />
+		</Provider>
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+Example1.jsx
+
+```js
+import React from "react";
+import { Consumer } from "../contexts/PersonContext";
+
+// 데이터를 GET하기 - 컨슈머 사용하기 class function 관계 없음
+
+export default function Example1() {
+	return (
+		<>
+			<h1>Consumer 사용</h1>
+			<Consumer>
+				{/* 이 안에 함수를 넣자.*/}
+				{(value) => (
+					<ul>
+						{value.map((person) => (
+							<li>{person.name}</li>
+						))}
+					</ul>
+				)}
+			</Consumer>
+		</>
+	);
+}
+```
+
+이런 식으로 사용할 수 있다.
+
+보통 Consumer를 hoc나 훅으로 사용할 수 있다.
+
+### 2번째 장법 class로 사용해서 get하는 방법
+
+Example2.jsx로 가서 만들어 보자.
+this.context를 사용해 보자,
+
+Example2.jsx
+
+```js
+class Example2 extends React.Component {
+	render() {
+		<>
+			<h1>this.context 사용</h1>
+			<ul>
+				{this.context.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+		</>;
+	}
+}
+
+export default Example2;
+```
+
+App.js에서 2를 추가하자.
+
+```js
+import Example1 from "./components/Example1";
+import Example2 from "./components/Example2";
+
+import "./App.css";
+function App() {
+	return (
+		<div className='App'>
+			<header className='App-header'>
+				<Example1 />
+				<Example2 />
+			</header>
+		</div>
+	);
+}
+```
+
 ## Additional Hooks (추가적인 훅)
 
 useReducer, useCallback, useMemo, useRef
