@@ -183,6 +183,119 @@ action을 만들기 전에 state를 구상해보자. 어떤 state를 줄지 생�
 
 ADD_TODO할때 장보기를 넣고 실행하면 type이 ADD_TODO이고 text가 장보기인 액션 객체가 만들어 진다.
 
+## Reducers - 리듀서
+
+### 리덕스의 리듀서란 ?
+
+- 액션을 주면, 그 액션이 적용되어 달라진(안달라질수도..) 결과를 만들어 줌
+
+- 그냥 함수이다.
+  - Pure Function (순수 함수)
+  - Immutable
+    - 왜?
+      - 리듀서를 통해 스테이트가 달라졌음을 리덕스가 인지하는 방식
+
+
+
+순수함수는 비순수함수와 다르게 부수효과가 일어나지 않고 같은 인풋을 넣으면 같은 결과를 만들어 주는 순수함수이다.
+
+그리고 immutable이다. 리듀서를 통해서 스테이트가 달라졌음을 리덕스가 인지를 한다.
+
+ ```js
+function 리듀서(previousState, action) {
+  return newState;
+}
+ ```
+
+- 액션을 받아서 스테이트를 리턴하는 구조
+- 인자로 들어오는 previousState와 리턴되는 newState는 다른 참조를 가지도록 해야합니다.
+
+previousState: 이전의 상태값
+
+action: 현재 들어온 액션
+
+![image-20201230212116614](./img/Reduximg3.png)
+
+
+
+그림에서 보면 보라색이 액션을 던지면 store안에서 reducer함수가 실행된다. 어떻게 실행 되나? 초록색을 받았을 때의 현재 상태와 초록색 액션을 인자로 해서 바뀔 스테이트를 리턴해 내는 그런 함수를 실행하는 것 이다.
+
+그래서 첫 번째 인자가 현재 스테이트(이전의 스테이즈) 2번째는 방금 받아들인 액션 리턴이 새로운 스테이트이다. 
+
+받은 previousState를 새로 만들어서 보내야한다. (이뮤터블하게) setState할때와 같은 방식이다.
+
+reducers.js로 만들자,
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+// 2. 액션이 날라왔을 때
+function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+
+
+변경이 일어날려면 밑에와 같이 해야한다.
+
+
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, action.text];
+  }
+  
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+
+
+정리해 보면 todoApp을 실행하는데 현재값과 새로운 액션이 들어왔다. 근데 만약에 undefined면 최초이기 때문에 그때 state값을 빈배열로 초기값으로 할당하고 만약 다른 액션이 들어오거나 다른 일이 일어나면은 반응을 안한다.
+
+```js
+  if (action.type === ADD_TODO) {
+    return [...previousState, action.text];
+  }
+```
+
+이거에만 반응할 일으키꺼니까 ADD_TODO라는 타입에 액션을 발행한 것이기 때문에 그것에 변경하는 로직을 추가해 주고 이거 외에는 변경 안한다고 한다.
+
+이때까지 놀라운건 지금까지 import redux를 한적이 없다.
+
+액션에서 addTodo를 쓴 적이 없다. 지금까지 한번도 발생시킨적이 없기 때문이다. reducer를 만들때 발생하는게 아니라 누가 발생시키는 건가? 그것은 리엑트 컴포넌트가 클릭을 했을때  addTodo를 넣는다 이런 식이다.
+
+
+
+
+
 
 
 
