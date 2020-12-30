@@ -1239,6 +1239,328 @@ function App() {
 }
 ```
 
+이러면 Error가 발생할 것이다. this.context가 지정이 안되어 있어서 이다.
+그래서 규명해 주는 방법인 첫번째가
+
+```js
+class Example2 extends React.Component {
+	render() {
+		<>
+			<h1>this.context 사용</h1>
+			<ul>
+				{this.context.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+		</>;
+	}
+	static contextType = PersonContext; // 이렇게 규명해 준다.
+}
+
+export default Example2;
+```
+
+위 에서 문법적으로는 아래랑 똑같다.
+
+```js
+class Example2 extends React.Component {
+	render() {
+		<>
+			<h1>this.context 사용</h1>
+			<ul>
+				{this.context.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+		</>;
+	}
+	// static contextType = PersonContext; // 이렇게 규명해 준다.
+}
+
+Example2.contextType = PersonContext;
+// => 이렇게 쓰면 function 에서도 쓸 수 있다.
+
+export default Example2;
+```
+
+이렇게 이야기 한거는 무슨 의미냐? class에서만 사용할 수 있는 방법이 아니고 class는
+static contextType에 컨텍스트를 설정한다., this.context => value이다 이렇게만 쓸 수 밖에 없다.
+왜냐면 1번으로도 쓸 수 있지만 결정적으로 3번째 방법은 사용할 수 없다.
+
+Example2.contextType = PersonContext; 이렇게 쓴다는 것은 무엇이냐면 Example2에다가 contextType을 setting 한것이다. PersonContext를 set한것이다.
+
+간과해선 안될 부분은 index.js에 Provider가 여러개일 수도 있다.(컨텍스트가 여러개 일 수도 있다.) 그 컨텍스트 중에서 Example2.contextType = PersonContext;얘는 클래스에서 하나만 쓴다는 것이다. 이렇게 쓸 필요가 없다. 함수 컨텍스트에서는 useContext를 쓰면 된다.
+
+Exampe3번으로 가보자.
+Example3은 hocks를 쓰는 방법이다. (useContext())
+
+```js
+import React from 'react';
+import PersonContext from "../contexts/PersonContext";
+
+export default function Example3() {
+	const persons = useContext(PersonContext);
+	return (
+				<>
+			<h1>useContext 사용</h1>
+			<ul>
+				{persons.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+		</>;
+	)
+}
+```
+
+즉 이 방법은 다른 context를 막 쓰더라도 상관이 없다. 이 방법이 좋은 방법이라 생각이 든다.
+만약 persons에다 데이터를 추가하는 버튼을 만드려면 어떻게 해야할까? 어떤 데이터를 추가 삭제 해더라도 새로 랜더를 해야한다면 프롭아니면 스테이트다.
+즉 이걸 어떻게 바꿔야 하나?
+
+```js
+import React from 'react';
+import PersonContext from "../contexts/PersonContext";
+
+export default function Example3() {
+	const persons = useContext(PersonContext);
+	return (
+				<>
+			<h1>useContext 사용</h1>
+			<ul>
+				{persons.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+			<button onClick={click}>추가</button>
+		</button>;
+		</>
+	);
+	function click() {
+
+	}
+}
+```
+
+index.js에서 value={이것을 객체로 넣자}
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { Provider } from "./contexts/PersonContext";
+
+const persons = [
+	{ id: 0, name: "Mark", age: 38 },
+	{ id: 1, name: "Hanna", age: 27 },
+];
+
+const add = () => {}; // 임시로 만든것
+
+ReactDOM.render(
+	<React.StricMode>
+		<Provider value={{ persons, add }}>
+			<App />
+		</Provider>
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+이렇게 바꾸고 Example1,2,3도 바꿔야한다.
+
+Example1.jsx
+
+```js
+import React from "react";
+import { Consumer } from "../contexts/PersonContext";
+
+// 데이터를 GET하기 - 컨슈머 사용하기 class function 관계 없음
+
+export default function Example1() {
+	return (
+		<>
+			<h1>Consumer 사용</h1>
+			<Consumer>
+				{/* 이 안에 함수를 넣자.*/}
+				{({ persons }) => (
+					<ul>
+						{persons.map((person) => (
+							<li>{person.name}</li>
+						))}
+					</ul>
+				)}
+			</Consumer>
+		</>
+	);
+}
+```
+
+Example2.jsx
+
+```js
+class Example2 extends React.Component {
+	render() {
+		const { persons } = this.context;
+		<>
+			<h1>this.context 사용</h1>
+			<ul>
+				{persons.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+		</>;
+	}
+	// static contextType = PersonContext; // 이렇게 규명해 준다.
+}
+
+Example2.contextType = PersonContext;
+// => 이렇게 쓰면 function 에서도 쓸 수 있다.
+
+export default Example2;
+```
+
+Example3.jsx
+
+```js
+import React from 'react';
+import PersonContext from "../contexts/PersonContext";
+
+export default function Example3() {
+	const {persons, add} = useContext(PersonContext);
+	return (
+				<>
+			<h1>useContext 사용</h1>
+			<ul>
+				{persons.map((person) => (
+					<li>{person.name}</li>
+				))}
+			</ul>
+			<button onClick={click}>추가</button>
+		</button>;
+		</>
+	);
+	function click() {
+		add();
+	}
+}
+```
+
+이렇게 변경을 하자. 이제 버튼을 클릭을 하면 add를 실행하자.
+눌려도 아무 일도 일어나지 않는다.
+
+다시 index.js로 가서
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+import { Provider } from "./contexts/PersonContext";
+
+const persons = [
+	{ id: 0, name: "Mark", age: 38 },
+	{ id: 1, name: "Hanna", age: 27 },
+];
+
+const add = () => {}; // add를 누르면 persons의 데이터가 바뀌면서 render가 다시 되도록 해야한다. 그래서 Provider를 App.js로 보내야한다.
+
+ReactDOM.render(
+	<React.StricMode>
+		<Provider value={{ persons, add }}>
+			<App />
+		</Provider>
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+add를 누르면 persons의 데이터가 바뀌면서 render가 다시 되도록 해야한다. 이런식으로 하면 랜더를 다시 못하니 그래서 Provider를 App.js로 보내야한다.
+
+index.js
+
+```js
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
+
+ReactDOM.render(
+	<React.StricMode>
+		<App />
+	</React.StricMode>,
+	document.getElementById("root")
+);
+```
+
+이렇게 프로바이더를 빼고 App.js로 가서 붙여준다.
+
+```js
+import Example1 from "./components/Example1";
+import Example2 from "./components/Example2";
+import Example3 from "./components/Example3";
+import { Provider } from "./contexts/PersonContext";
+import "./App.css";
+
+const persons = [
+	{ id: 0, name: "Mark", age: 38 },
+	{ id: 1, name: "Hanna", age: 27 },
+];
+
+const add = () => {}; // add를 누르면 persons의 데이터가 바뀌면서 render가 다시 되도록 해야한다. 그래서 Provider를 App.js로 보내야한다.
+
+function App() {
+	return (
+		<Provider value={{ persons, add }}>
+			<div className='App'>
+				<header className='App-header'>
+					<Example1 />
+					<Example2 />
+					<Example3 />
+				</header>
+			</div>
+		</Provider>
+	);
+}
+```
+
+이렇게 하면 일단 나오기만 할 것이다. 그 다음에
+
+```js
+import Example1 from "./components/Example1";
+import Example2 from "./components/Example2";
+import Example3 from "./components/Example3";
+import { Provider } from "./contexts/PersonContext";
+import "./App.css";
+
+function App() {
+	const [persons, setPersons] = useState([
+		{ id: 0, name: "Mark", age: 38 },
+		{ id: 1, name: "Hanna", age: 27 },
+	]);
+	function add() {
+		setPersons([...persons, { id: 2, name: "React", age: 10 }]);
+	} // 이렇게 하면 버튼을 누르면 person data가 바뀌면서 Provider가 다시 되면서 랜더가 다시 된다.
+
+	return (
+		<Provider value={{ persons, add }}>
+			<div className='App'>
+				<header className='App-header'>
+					<Example1 />
+					<Example2 />
+					<Example3 />
+				</header>
+			</div>
+		</Provider>
+	);
+}
+```
+
+이렇게 훅을 사용하면 된다.
+
 ## Additional Hooks (추가적인 훅)
 
 useReducer, useCallback, useMemo, useRef
