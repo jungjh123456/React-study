@@ -156,7 +156,7 @@ function 액션생성자(...args) { return 액션; }
 
 ### 액션 준비 코드
 
-```react
+```js
 // actions.js
 
 // 액션의 type 정의
@@ -386,7 +386,7 @@ Index.js에서 써보자.
 
 - Index.js
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -435,7 +435,7 @@ redux라는 라이브러리는 엄청 일을 하는 라이브러리이다.
 
 - index.js
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -472,7 +472,7 @@ action.js를 addTodo를 바꿔보자
 
 - action.js
 
-```react
+```js
 export const ADD_TODO = 'ADD_TODO';
 
 
@@ -491,7 +491,7 @@ export const addTodo = (text) => (
 
 - index.js
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -520,7 +520,7 @@ dispatch를 하면 action이 store한테 도달 하는 것이다.
 
 그러면 console을 다시 찍어 보자.
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -556,7 +556,7 @@ subscribe는 구독이라는 의미이다. 어떤 것을 구독 하겠나요? st
 
 - Index.js
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -615,7 +615,7 @@ export default store;
 
 - index.js
 
-  ```react
+  ```js
   import React from 'react';
   import ReactDOM from 'react-dom';
   import './index.css';
@@ -645,7 +645,7 @@ export default store;
 
 - App.js
 
-```react
+```js
 import logo from './logo.svg';
 import './App.css';
 
@@ -674,7 +674,7 @@ export default App;
 
 - App.js
 
-```react
+```js
 import logo from './logo.svg';
 import './App.css';
 
@@ -701,7 +701,7 @@ export default App;
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 
@@ -737,7 +737,7 @@ function App({ store }) {
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useState } from 'react';
@@ -770,7 +770,7 @@ function App({ store }) {
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useEffect, useState } from 'react';
@@ -827,7 +827,7 @@ componentDidMount 시점이다. 그래서 componentWillUnmount에 항상 해지�
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useEffect, useState } from 'react';
@@ -890,7 +890,7 @@ export default ReduxContext;
 
 - index.js
 
-```react
+```js
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
@@ -921,7 +921,7 @@ reportWebVitals();
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useContext, useEffect, useState } from 'react';
@@ -979,7 +979,7 @@ function App() {
 
 - TodoList.jsx
 
-```react
+```js
 import React, { useContext, useEffect, useState } from 'react';
 import ReduxContext from '../contexts/ReduxContext';
 
@@ -1009,7 +1009,7 @@ export default function TodoList() {
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useContext, useEffect, useState } from 'react';
@@ -1057,7 +1057,7 @@ function App() {
 
 - Form.jsx
 
-```jsx
+```js
 import React from 'react';
 
 export default function Form() {
@@ -1074,7 +1074,7 @@ export default function Form() {
 
 - App.js
 
-```react
+```js
 import './App.css';
 import { addTodo } from './actions';
 import { useContext, useEffect, useState } from 'react';
@@ -1123,7 +1123,7 @@ function App() {
 
 - Form.jsx
 
-```react
+```js
 import React, { useRef } from 'react';
 
 export default function Form() {
@@ -1150,7 +1150,7 @@ export default function Form() {
 
 - Form.jsx
 
-```react
+```js
 import React, { useRef } from 'react';
 
 export default function Form() {
@@ -1193,7 +1193,7 @@ export const addTodo = (text) => (
 
 - Form.jsx
 
-```react
+```js
 import React, { useRef } from 'react';
 import { addTodo } from "../actions";
 
@@ -1221,7 +1221,7 @@ export default function Form() {
 
 - Form.jsx
 
-```react
+```js
 import React, { useRef } from 'react';
 import { addTodo } from "../actions";
 
@@ -1262,7 +1262,7 @@ export default ReduxContext;
 
 - Form.js
 
-```react
+```js
 import React, { useContext, useRef } from 'react';
 import { addTodo } from "../actions";
 import ReduxContext from '../contexts/ReduxContext';
@@ -1289,4 +1289,10 @@ export default function Form() {
 그러면 아래와 같이 인풋에 작성하고 add를 누르면 화면에 그려질 것이다.
 
 ![image-20201230212116614](./img/Reduximg9.png)
+
+
+
+얘는 subscribe 할 필요가 없다. 왜냐하면 받아서 그림 그릴게 없으니까
+
+그래서 지금 index.js에서 Provider에서 넣어준 아이를 TodoList.jsx에서는 보여주는 용도로 쓰고 있고 Form.jsx에서는 액션을 날려주는 아이로 쓰고 있다.
 
