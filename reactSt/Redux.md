@@ -967,3 +967,326 @@ function App() {
 
 ![image-20201230212116614](./img/Reduximg5.png)
 
+로직과 관계 없이 복잡한 내용들이 있다.
+
+예를 들면 useEffect를 사용했던 거다.  어떤 컴포넌트든지 store랑 연결하면 100% 일어나야하는 일이다.
+
+그래서 요런거를 빼서 hock을 만든다. 이것은 커스텀 훅인데 이 커스텀 훅을 누가 만들어서 주는 것일까? 그것은 리엑트 리덕스에서 만들어서 줄 것이다. 위에는 직접 만든 것이다. (알고 보면 저런 식으로 동작하는 코드이다.)
+
+하나 더 말들자 src에 뉴 폴더해서 components 폴더 만들고 Form.jsx 파일와 todoList.jsx를 만들자.
+
+
+
+- TodoList.jsx
+
+```react
+import React, { useContext, useEffect, useState } from 'react';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState());
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState());
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store])
+  return (
+  <div>
+      {todos.map(todo => <ul>{todo}</ul>)}
+  </div>
+  )
+}
+```
+
+이렇게 만든 후 App.js에서 사용해 보자.
+
+
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useContext, useEffect, useState } from 'react';
+import ReduxContext from './contexts/ReduxContext';
+import TodoList from './components/TodoList';
+
+
+function App() {
+  const store = useContext(ReduxContext);
+
+  const [state, setState] = useState(store.getState());
+    
+    useEffect(() => {
+      const unsubscribe = store.subscribe(() => {
+        setState(store.getState());
+      })
+      return () => {
+        unsubscribe();
+      }
+    },[store])
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          <TodoList />
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+```
+
+![image-20201230212116614](./img/Reduximg6.png)
+
+잘 나올 것이다.
+
+
+
+이제 Form.jsx를 넣어보자.
+
+- Form.jsx
+
+```jsx
+import React from 'react';
+
+export default function Form() {
+  return (
+    <div>
+      <input type="text" />
+      <button>add</button>
+    </div>
+  )
+}
+```
+
+
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useContext, useEffect, useState } from 'react';
+import ReduxContext from './contexts/ReduxContext';
+import TodoList from './components/TodoList';
+import Form from './components/Form';
+
+
+function App() {
+  const store = useContext(ReduxContext);
+
+  const [state, setState] = useState(store.getState());
+    
+    useEffect(() => {
+      const unsubscribe = store.subscribe(() => {
+        setState(store.getState());
+      })
+      return () => {
+        unsubscribe();
+      }
+    },[store])
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          <TodoList />
+          <Form />
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+```
+
+이렇게 하면 Form컴포넌트가 완성된다.
+
+일단 Form가서 둘 중 하나이다. 컨트롤드, 언 컨트롤드 
+
+
+
+언 컨트롤드로 해보자. (클래스 컴포넌트에서는 createRef를 써야했었고 함수는 useRef를 사용하자.)
+
+- Form.jsx
+
+```react
+import React, { useRef } from 'react';
+
+export default function Form() {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    console.log(inputRef);
+  }
+}
+```
+
+하면 콘솔에는 
+
+![image-20201230212116614](./img/Reduximg7.png)
+
+이렇게 current에 input이 들어와 있을 것이다.
+
+
+
+- Form.jsx
+
+```react
+import React, { useRef } from 'react';
+
+export default function Form() {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    console.log(inputRef.current.value);
+  }
+}
+```
+
+하면 콘솔에 input태그에 쓴 value가 나올 것이다.
+
+여기서 어떻게 해야 할까? 액션 생성자 함수로 액션을 생성하자.
+
+
+
+- actions.js
+
+```js
+export const ADD_TODO = 'ADD_TODO';
+
+
+export const addTodo = (text) => (
+   {type: ADD_TODO, text } // { type: ADD_TODO, text: text }
+  )
+
+// 최초의 상태값
+// ["text"]
+```
+
+이 액션에 addTodo를 Form.jsx에 가져오자.
+
+
+
+- Form.jsx
+
+```react
+import React, { useRef } from 'react';
+import { addTodo } from "../actions";
+
+export default function Form() {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    addTodo(todo);
+    console.log(addTodo(todo))
+  }
+}
+```
+
+그러면 add 버튼을 누르면 아래와 같이 콘솔에 찍힌다.
+
+![image-20201230212116614](./img/Reduximg8.png)
+
+얘를 치고 나서 빈칸으로 만들고 싶으면 
+
+- Form.jsx
+
+```react
+import React, { useRef } from 'react';
+import { addTodo } from "../actions";
+
+export default function Form() {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    addTodo(todo);
+    console.log(addTodo(todo))
+    inputRef.current.value = "";
+  }
+}
+```
+
+이렇게 하고 이제 dispatch를 하면 된다.
+
+
+
+- ReduxContext.js
+
+```js
+import React from "react";
+
+const ReduxContext = React.createContext();
+
+export default ReduxContext;
+```
+
+이전에 만든 createContext를 가지고 dispatch를 하면 된다.
+
+
+
+- Form.js
+
+```react
+import React, { useContext, useRef } from 'react';
+import { addTodo } from "../actions";
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function Form() {
+  const store = useContext(ReduxContext);
+
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    addTodo(todo);
+    store.dispatch(addTodo(todo))
+    inputRef.current.value = "";
+  }
+}
+```
+
+그러면 아래와 같이 인풋에 작성하고 add를 누르면 화면에 그려질 것이다.
+
+![image-20201230212116614](./img/Reduximg9.png)
+

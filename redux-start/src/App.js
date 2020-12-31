@@ -2,6 +2,8 @@ import './App.css';
 import { addTodo } from './actions';
 import { useContext, useEffect, useState } from 'react';
 import ReduxContext from './contexts/ReduxContext';
+import TodoList from './components/TodoList';
+import Form from './components/Form';
 
 
 function App() {
@@ -21,8 +23,8 @@ function App() {
     return (
       <div className="App">
         <header className="App-header">
-          {JSON.stringify(state)}
-          <button onClick={click}>add</button>
+          <TodoList />
+          <Form />
         </header>
       </div>
     );
