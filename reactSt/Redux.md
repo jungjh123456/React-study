@@ -997,7 +997,9 @@ export default function TodoList() {
   }, [store])
   return (
   <div>
-      {todos.map(todo => <ul>{todo}</ul>)}
+    <ul>
+      {todos.map(todo => <li>{todo}</li>)}
+    </ul>
   </div>
   )
 }
@@ -1295,4 +1297,349 @@ export default function Form() {
 얘는 subscribe 할 필요가 없다. 왜냐하면 받아서 그림 그릴게 없으니까
 
 그래서 지금 index.js에서 Provider에서 넣어준 아이를 TodoList.jsx에서는 보여주는 용도로 쓰고 있고 Form.jsx에서는 액션을 날려주는 아이로 쓰고 있다.
+
+
+
+## 로직을 추가하기
+
+- action을 정의하고 action 생성자를 만들고, reducer를 수정하면 된다.
+
+새로 추가될 로직
+
+```js
+// actions.js
+
+// 액션의 type 정의
+// 액션의 타입 => 액션 생성자 이름
+// ADD_TODO => addTodo
+export const ADD_TODO = 'ADD_TODO';
+export const COMPLETE_TODO = 'COMPLETE_TODO';
+
+// 액션 생산자
+// 액션의 타입은 미리 정의한 타입으로 부터 가져와서 사용하며,
+// 사용자가 인자로 주지 않습니다.
+export function addTodo(text) {
+  return { type: ADD_TODO, text }; // { type: ADD_TODO, text: text }
+}
+```
+
+```js
+// actions.js
+
+// 액션의 type 정의
+// 액션의 타입 => 액션 생성자 이름
+// ADD_TODO => addTodo
+export const ADD_TODO = 'ADD_TODO';
+export const COMPLETE_TODO = 'COMPLETE_TODO';
+
+// 액션 생산자
+// 액션의 타입은 미리 정의한 타입으로 부터 가져와서 사용하며,
+// 사용자가 인자로 주지 않습니다.
+export function addTodo(text) {
+  return { type: ADD_TODO, text }; // { type: ADD_TODO, text: text }
+}
+
+export function completeTodo(index) {
+  return { type: COMPLETE_TODO, index }; // { type: COMPLETE_TODO, index: index}
+}
+```
+
+COMPLETE_TODO라고 하는걸 할 것이다. COMPLETE_TODO를 하려면 만약에 ADD_TODO로 들어간 아이가 할일이 끝나면 COMPLETE_TODO를 누르면은 ADD_TODO들어와 있던 데이터가 complete됐다고 떠야 한다.
+
+
+
+action.js로 가서 addTodo를 실행할 때 거기가 reducers.js이다.
+
+
+
+- reducers.js
+
+새로 추가될 아이가 그냥 text가 아니고 객체 형태로 추가해야한다.
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+변경이 일어나는 로직에서 변경을 한다.
+
+이런 데이터가 들어온다는 사실을 알게 되었으니 TodoList.jsx에서 
+
+- TodoList.jsx
+
+```js
+import React, { useContext, useEffect, useState } from 'react';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState());
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState());
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store])
+  return (
+  <div>
+     <ul>
+      {todos.map(todo => <li>{todo.text}</li>)}
+    </ul>
+  </div>
+  )
+}
+```
+
+
+
+이렇게 바꿔주면 잘 나올 것이다.
+
+![image-20201230212116614](./img/Reduximg9.png)
+
+그리고 이 아이 옆에다가 버튼을 추가하자.
+
+
+
+```js
+import React, { useContext, useEffect, useState } from 'react';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState());
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState());
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store])
+  return (
+  <div>
+    <ul>
+      {todos.map(todo => (<li>{todo.text}<button onClick={click}>done</button></li>))}
+		</ul>
+  </div>
+  )
+  function click() {
+    
+  }
+}
+```
+
+이 버튼을 누르면 됐다고 변경을 할 것이다.
+
+
+
+이제 리덕스 쪽을 바꾸러 가자.
+
+이 done을 누르면 complete 형식의 dispatch가 날라 갈 것 인데 맨 처음에 하는 일은 actions.js에서 type을 만들어 줘야한다.
+
+눌렸을 때 어느 건지를 알아내야하는데 보통은 이렇게 하면 안돼는데 지금은 빠르게 하기 위해서 생각 없이 인덱스라는 것을 줘야한다.
+
+- actions.js
+
+```js
+export const ADD_TODO = 'ADD_TODO';
+export const COMPLETE_TODO = 'COMPLETE_TODO';
+
+export const addTodo = (text) => (
+   {type: ADD_TODO, text } // { type: ADD_TODO, text: text }
+);
+
+export const completeTodo = (index) => ({
+  type: COMPLETE_TODO,
+  index,
+});
+
+// 최초의 상태값
+// ["text"]
+```
+
+
+
+reducers.js에서는 이제
+
+```js
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+ 
+```
+
+얘랑
+
+```js
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+얘는 변동이 없다.
+
+여기서 만약에 action.type === COMPLETE_TODO면 새로운 배열을 리턴해야하는데 그 아이를 빼고 리턴해야 한다.
+
+여기서 가장 쉬운 방법 for문을 돌면 된다. 
+
+
+
+- reducers.js
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO, COMPLETE_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  if (action.type === COMPLETE_TODO) {
+    const newState = [];
+    for (let i = 0; i < previousState.length; i++) {
+      const todo = previousState[i]
+      if (i === action.index) {
+        todo.done = true;
+        newState.push({...todo});
+      }
+      newState.push({ ...todo })
+    }
+    return newState;
+  }
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+이렇게 짜니까 너무 복잡하다...(쉬운데 코드가 긴 방법이다.)
+
+이거보다 간단한 방법은 아래 방법이다.
+
+- reducers.js
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO, COMPLETE_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  if (action.type === COMPLETE_TODO) {
+    const newState = [...previousState];
+    newState[action.index].done = true;
+    return newState;
+  }
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+이렇게 엄청 간단해 진다. 
+
+
+
+이제 로직은 다 됬으니 dispatch를 날려주면 된다.
+
+
+
+- TodoList.jsx
+
+```js
+import React, { useContext, useEffect, useState } from 'react';
+import { completeTodo } from '../actions';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState());
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState());
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store]);
+
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+```
+
+이렇게 하자. map안에 click이밴트함수를 넣은 이유는 Index를 받기 위함이다.
+
+
+
+이렇게 완성을 하면 done 버튼을 누르면 가운데 선이 그려질 것이다.
+
+![image-20201230212116614](./img/Reduximg10.png)
 

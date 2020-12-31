@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
+import { completeTodo } from '../actions';
 import ReduxContext from '../contexts/ReduxContext';
 
 export default function TodoList() {
@@ -12,10 +13,25 @@ export default function TodoList() {
     return () => {
       unsubscribe();
     }
-  }, [store])
+  }, [store]);
+
   return (
   <div>
-      {todos.map(todo => <ul><li>{todo}</li></ul>)}
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
   </div>
   )
 }
