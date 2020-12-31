@@ -5,7 +5,7 @@
 import { ADD_TODO } from "./actions";
 
 // 2. 액션이 날라왔을 때
-function todoApp(previousState, action) { 
+export function todoApp(previousState, action) { 
   // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
   // 최초에 초기값 할당
   if (previousState === undefined) {

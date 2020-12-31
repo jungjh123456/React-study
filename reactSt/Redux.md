@@ -321,7 +321,7 @@ const store = createStore(리듀서);
 
 src에 store.js를 만들자.
 
-
+- store.js
 
 ```js
 import { createStore } from 'redux';
@@ -333,7 +333,7 @@ const store = createStore()
 
 
 
-reducers.js
+- reducers.js
 
 ```js
 
@@ -376,17 +376,594 @@ export default store;
 
 이렇게 만들자.
 
+store를 가져다 써보자 .
 
 
 
+Index.js에서 써보자.
 
 
 
+- Index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+
+console.log(store);
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+```
 
 
 
+콘솔에는 찍히는건 아래와 같다.
+
+![image-20201230212116614](./img/Reduximg4.png)
 
 
 
+함수이름이 dispatch getState replaceReducer subscribe 4개밖에 없다.
 
+redux라는 라이브러리는 엄청 일을 하는 라이브러리이다. 
+
+### store
+
+- Store.getState();
+- Store.dispatch(액션); store.dispatch(액션생성자());
+- const unsubscribe = store.subscribe(() => {});
+  - 리턴이 unsubscribe 라는 점
+  - Unsubscribe(); 하면 제거
+- Store.replaceReducer(다른리듀서); // 얘는 쓸일이 별로 없다.(다른 리듀서로 교체 하는 아이다.)
+
+
+
+- index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+
+console.log(store.getstate());
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+```
+
+콘솔에 찍히는 것은 빈 배열이다. 이 빈배열은 리듀서에 있는 초기 값이다. 
+
+
+
+그 다음 할 일은 dispatch를 해보자.
+
+
+
+action.js를 addTodo를 바꿔보자
+
+- action.js
+
+```react
+export const ADD_TODO = 'ADD_TODO';
+
+
+export const addTodo = (text) => (
+   {type: ADD_TODO, text } // { type: ADD_TODO, text: text }
+  )
+
+// 최초의 상태값
+// ["text"]
+
+```
+
+그리고 index.js에서 dispatch를 사용해 보자.
+
+
+
+- index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import { addTodo } from './actions';
+
+console.log(store.state());
+store.dispatch(addTodo('장보기'));
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+```
+
+아무일도 안생기지만 store.dispatch(addTodo('장보기')); 이 아이가 전에 위 그림에서 보면 초록색 아이이다.
+dispatch를 하면 action이 store한테 도달 하는 것이다.
+
+그러면 console을 다시 찍어 보자.
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import { addTodo } from './actions';
+
+console.log(store.state());
+store.dispatch(addTodo('장보기'));
+console.log(store.state());
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+```
+
+
+
+다시 찍으면 ["장보기"]가 들어 있을 것이다.
+
+이제 subscribe()를 써보자. 
+
+subscribe는 구독이라는 의미이다. 어떤 것을 구독 하겠나요? store안에 있는 state가 변하면 새로 실행 되는 것이다. 
+
+- Index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import { addTodo } from './actions';
+
+console.log(store.state());
+
+store.subscribe(() => {
+  console.log(store.state());
+})
+
+store.dispatch(addTodo('장보기'));
+
+ReactDOM.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+```
+
+
+
+하면 장보기가 들어온다. (일단 구독을 하고 dispatch를 해야한다. 이제 들어온다.)
+
+subscribe는 최초에 설정될 때에는 할 수가 없다. 생성될때 빈배열로 세팅이 된다.
+
+생성이 될때는 
+
+- Store.js
+
+```js
+import { createStore } from 'redux';
+import {todoApp} from './reducers';
+
+const store = createStore(todoApp)
+
+export default store;
+```
+
+이 때 이다.  이 store.js에다가 subscribe를 해봐야 초기값을 설정되는걸 여기서 볼수 없다.
+
+
+
+이제 index.js에서 한거 지우자.
+
+- index.js
+
+  ```react
+  import React from 'react';
+  import ReactDOM from 'react-dom';
+  import './index.css';
+  import App from './App';
+  import reportWebVitals from './reportWebVitals';
+  import store from './store';
+  
+  
+  ReactDOM.render(
+    <React.StrictMode>
+      <App store={store}/>
+    </React.StrictMode>,
+    document.getElementById('root')
+  );
+  
+  // If you want to start measuring performance in your app, pass a function
+  // to log results (for example: reportWebVitals(console.log))
+  // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+  reportWebVitals();
+  
+  
+  ```
+
+  그리고 App한테 store를 준다.
+
+이제 App에서 store를 받을 수 있다.
+
+- App.js
+
+```react
+import logo from './logo.svg';
+import './App.css';
+
+function App({ store }) {
+  console.log(store.getState());
+  return (
+    <div className="App">
+      <header className="App-header">
+     
+      </header>
+    </div>
+  );
+}
+
+export default App;
+
+```
+
+
+
+위에 처럼 하면 콘솔에 빈배열이 나온다.
+
+화면에 출력해 보자.
+
+
+
+- App.js
+
+```react
+import logo from './logo.svg';
+import './App.css';
+
+function App({ store }) {
+const state = store.getState();
+  return (
+    <div className="App">
+      <header className="App-header">
+        {JSON.stringify(state)}
+        <button>add</button>
+      </header>
+    </div>
+  );
+}
+
+export default App;
+
+
+```
+
+화면에 나올 것이고 add를 누르면 새로운 아이를 추가할 것이다.
+
+
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+
+
+function App({ store }) {
+  const state = store.getState();
+    return (
+      <div className="App">
+        <header className="App-header">
+          {JSON.stringify(state)}
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+  
+```
+
+
+
+이렇게 하고 버튼을 누르면 될까 안될까?? 
+
+당연히 안된다. 왜 안될까? 얘를 눌렸다고 해서 return이 다시 실행 하는 건 아니다. 
+
+조금 꼼수를 해서 실행하도록 하자. 
+
+아래와 같이 useState를 사용을 하자.
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useState } from 'react';
+
+
+function App({ store }) {
+  const [state, setState] = useState(store.getState());
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          {JSON.stringify(state)}
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+```
+
+
+
+그리고 클릭을 했을때 반응을 해야해서 useEffect()를 사용하자.
+
+
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useEffect, useState } from 'react';
+
+
+function App({ store }) {
+  const [state, setState] = useState(store.getState());
+    
+  useEffect(() => {
+      store.subscribe(() => {
+        setState(store.getState());
+      })
+    },[store])
+
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          {JSON.stringify(state)}
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+  
+  
+
+```
+
+
+
+이렇게 하면 잘 돌아간다. 
+
+위에서 한가지가 빠졌다. 
+
+```js
+  useEffect(() => {
+      store.subscribe(() => {
+        setState(store.getState());
+      })
+    },[store])
+
+
+```
+
+componentDidMount 시점이다. 그래서 componentWillUnmount에 항상 해지한게 있어야 한다.
+
+
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useEffect, useState } from 'react';
+
+
+function App({ store }) {
+  const [state, setState] = useState(store.getState());
+    
+    useEffect(() => {
+      const unsubscribe = store.subscribe(() => {
+        setState(store.getState());
+      })
+      return () => {
+        unsubscribe();
+      }
+    },[store])
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          {JSON.stringify(state)}
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+  
+  
+
+```
+
+이렇게 만든다.
+
+어디서는 store만 있으면 dispatch에 반응할 수 있는 리엑트 컴포넌트가 되겠구나 라는 생각이 든다.
+
+어디서는 store를 가져다 쓸 수 있는 상태를 하게해주는 contextAPI를 사용하면 된다.
+
+Src/contexts폴더를 만들어서 ReduxContext.js파일을 생성하자.
+
+
+
+- ReduxContext.js
+
+```js
+import React from "react";
+
+const ReduxContext = React.createContext();
+
+export default ReduxContext;
+```
+
+
+
+이게 끝이다 그리고 ReduxContext를 index.js에다가 
+
+- index.js
+
+```react
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import ReduxContext from './contexts/ReduxContext';
+
+
+ReactDOM.render(
+  <React.StrictMode>
+    <ReduxContext.Provider value={store}>
+      <App />
+    </ReduxContext.Provider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+
+```
+
+이렇게 Provider로 감싸고 App.js가서 
+
+- App.js
+
+```react
+import './App.css';
+import { addTodo } from './actions';
+import { useContext, useEffect, useState } from 'react';
+import ReduxContext from './contexts/ReduxContext';
+
+
+function App() {
+  const store = useContext(ReduxContext);
+
+  const [state, setState] = useState(store.getState());
+    
+    useEffect(() => {
+      const unsubscribe = store.subscribe(() => {
+        setState(store.getState());
+      })
+      return () => {
+        unsubscribe();
+      }
+    },[store])
+
+    return (
+      <div className="App">
+        <header className="App-header">
+          {JSON.stringify(state)}
+          <button onClick={click}>add</button>
+        </header>
+      </div>
+    );
+    function click() {
+      store.dispatch(addTodo('아무거나'))
+    }
+  }
+  
+  export default App;
+  
+  
+
+  
+
+```
+
+이렇게 하면 잘 나올 것이다.
+
+![image-20201230212116614](./img/Reduximg5.png)
 
