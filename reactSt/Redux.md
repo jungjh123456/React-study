@@ -1643,3 +1643,688 @@ export default function TodoList() {
 
 ![image-20201230212116614](./img/Reduximg10.png)
 
+
+
+## 정리
+
+로직을 추가할 때  action을  정의하고, action 생성자를 만들고, reducer를 수정해야한다 빠진게 있다 그건 맨 앞에 state를 구상해야 한다. (세로 변경하는 state)
+
+
+
+
+
+## 애플리케이션이 커지면 state 가 복잡해 진다.
+
+이전에는 
+
+```js
+[
+  {
+    tdxt: 'Hello',
+    completede: false
+  }
+]
+```
+
+근데 이제 애플리케이션이 복잡해 져서 그래서
+
+```js
+{
+  todos: [
+    {
+      text: "Hello",
+      completed: false
+    }
+  ],
+    filter: "SHOW_ALL"
+}
+```
+
+이렇게 todos도 만들고 filter도 만들고 더 많이 생긴다.
+
+- 리듀서를 크게 만들고 state를 변경하는 모든 로직을 담을 수도 있다.
+
+예를들어서 리턴해줄때 어떻게 리턴 해줬나면 
+
+- reducers.js
+
+```js
+return [...previousState, {text: action.text, done: false}];
+```
+
+이렇게 todo만 리턴했다. 
+
+이렇게 리턴하는게 아니라 아예 초기 값이 이런 형태가 아니라 변경을 하는 거다.
+
+일단 변경 state를 구상해보자.
+
+```js
+{todos: [{text: "장보기", done: false},{text: "장보기", done: false}], filter: 'SHOW_ALL'}
+```
+
+이런걸 추가했다고 보자.
+
+이제 최초의 상태값이 바뀌겠다.
+
+```js
+// 기존 초기값
+[] => []
+// 이후 초기값
+[] => {todos:[], filter: 'SHOW_ALL'}
+```
+
+이렇게 바뀌면 이렇게 해당하게 reducers.js 도 바꿔줘야한다.
+
+- reducers.js
+
+```js
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO, COMPLETE_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return []; // 초기값 이것도 달라지고
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  } // 이것도 달라지고
+  
+  if (action.type === COMPLETE_TODO) {
+    const newState = [...previousState];
+    newState[action.index].done = true;
+    return newState;
+  } // 이것도 달라진다
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+```
+
+그래서 달라진다고 말을 했던건 리듀서를 크게 만드는 것이다. 시간이 갈 수록 복잡해 질 것이다.
+
+그래서 리덕스는 저걸 쪼개는 방법을 알려준다. (쪼개는 방법을 모르는 상태에서 이걸 하면 복잡해질 수 밖에 없다.)
+
+mobX같은 경우 2개를 다른 스토어로 사용하겠다. (todos에 대한 store를 따로두고 filter 스토어를 따로 만든다.)
+
+- 리듀서를 분할해서 만들고 합치는 방법을 사용할 수 있다.
+  - todos만 변경하는 액션을을 처리하는 A라는 리듀서 함수를 만들고
+  - filter만을 변경하는 액션을들 처리하는 B라는 리듀서 함수를 만들고
+  - A와 B를 합침
+
+### 한번에 다하는 리듀서
+
+- reducers.js
+
+```js
+import { ADD_TODO, COMPLETE_TODO } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return {todos: [], filter: 'SHOW_ALL'}; // 초기값
+  }
+  
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return {
+      ...previousState, // 변하지 않은 아이(filter)
+      todos:[...previousState.todos, {text: action.text, done: false}]
+    };
+  }
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState.todos];
+    newTodos[action.index].done = true;
+    return {...previousState, todos: newTodos }};
+  }
+
+  // 변경이 안일어났을때
+  return previousState;
+}
+```
+
+
+
+filter를 바꾸는 action을 추가해 보자
+
+- Actions.js
+
+```js
+export const ADD_TODO = 'ADD_TODO';
+export const COMPLETE_TODO = 'COMPLETE_TODO';
+
+export const SHOW_DONE = "SHOW_DONE";
+export const SHOW_ALL = "SHOW_ALL";
+
+export const addTodo = (text) => (
+   {type: ADD_TODO, text } // { type: ADD_TODO, text: text }
+);
+
+export const completeTodo = (index) => ({
+  type: COMPLETE_TODO,
+  index,
+});
+
+export const showDone = () => ({
+  type: COMPLETE_TODO,
+}); // 페이로드가 필요 없다.
+
+export const showAll = () => ({
+  type: SHOW_ALL
+});
+// 최초의 상태값
+// ["text"]
+```
+
+
+
+이렇게 바꾸고 얘를 받는 reducers.js를 처리하자.
+
+- reducers.js
+
+```js
+
+
+// 언제 실행 되나?
+// 1. 앱이 최초로 실행될 때 => 초기 state를 만들어서 할당한다. 이런 행동을 해야한다.
+
+import { ADD_TODO, COMPLETE_TODO, SHOW_ALL, SHOW_DONE } from "./actions";
+
+// 2. 액션이 날라왔을 때
+export function todoApp(previousState, action) { 
+  // 앱이 최초로 실행됬을 때 타이밍을 알려면 최초에 previousState는 undefined가 들어온다.
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return {todos: [], filter: 'SHOW_ALL'}; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  } // 이것도 달라지고
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState.todos];
+    newTodos[action.index].done = true;
+    return {...previousState, todos: newTodos};
+  } // 이것도 달라진다
+  
+  // filter
+  if (action.type === SHOW_DONE) {
+    return {...previousState, filter: "SHOW_DONE"};
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return {...previousState, filter: "SHOW_ALL"};
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+```
+
+이렇게 바뀔 것이다. 
+
+생각을 해보면 ADD_TODO와 COMPLETE_TODO는 todos에 관련된 아이들이고 그 밑에 SHOW_DONE과 SHOW_ALL은 filter에 관련된 것이다.
+
+
+
+분리하는 기준은 지금 위와 같이 filter만 바뀌고 다른 아이는 안 건든다. 이렇게 나뉠 경우 분리한다는 생각이 들어야 한다.
+
+컴포넌트 쪽도 바꾸자.
+
+- TodoList.jsx
+
+```js
+import React, { useContext, useEffect, useState } from 'react';
+import { completeTodo } from '../actions';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState().todos); // todos와 filter를 둘다 가지고 있는 state다
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState().todos);
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store]);
+
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+```
+
+
+
+### 리듀서 분리 - 중요
+
+지금 할 거는 
+
+첫번째 방법 리듀서 분리 후 수동으로 합치기
+
+두번째 방법 리듀서 분리 후 redux 함수로 합치기
+
+
+
+### 첫번째 방법 수동으로 합치기
+
+
+
+- reducers.js
+
+```js
+
+import { ADD_TODO, COMPLETE_TODO, SHOW_ALL, SHOW_DONE } from "./actions";
+
+// 리듀서 분리 후 수동으로 합치기
+function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+
+
+function filter(previousState, action) { 
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return 'SHOW_ALL'; // 초기값
+  }
+
+  // filter
+  if (action.type === SHOW_DONE) {
+    return "SHOW_DONE";
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return  "SHOW_ALL";
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+```
+
+이해가 되나요? 오로지 필터라는 프로퍼티 안에 있는 아이만 신경 쓰자
+
+이제 합쳐보자.
+
+- reducers.js
+
+```js
+import { ADD_TODO, COMPLETE_TODO, SHOW_ALL, SHOW_DONE } from "./actions";
+
+// 리듀서 분리 후 수동으로 합치기
+function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+
+
+function filter(previousState, action) { 
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return 'SHOW_ALL'; // 초기값
+  }
+
+  // filter
+  if (action.type === SHOW_DONE) {
+    return "SHOW_DONE";
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return  "SHOW_ALL";
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+
+export function todoApp(previousState, action) {
+  return {
+    todos: todos(previousState.todos, action),
+    filter: filter(previousState.filter, action),
+  }; // state형태
+}
+```
+
+이렇게 하면 에러가 난다. 요 상태에서 보면 previousState의 초기값 todoApp에 들어오는 previousState의 초기값이 undefined이다.
+
+그래서 undefined.todos이다. 그래서 에러가 발생한다. 그래서 
+
+```js
+import { ADD_TODO, COMPLETE_TODO, SHOW_ALL, SHOW_DONE } from "./actions";
+
+// 리듀서 분리 후 수동으로 합치기
+function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+
+
+function filter(previousState, action) { 
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return 'SHOW_ALL'; // 초기값
+  }
+
+  // filter
+  if (action.type === SHOW_DONE) {
+    return "SHOW_DONE";
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return  "SHOW_ALL";
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+
+export function todoApp(previousState = {}, action) {
+  return {
+    todos: todos(previousState.todos, action),
+    filter: filter(previousState.filter, action),
+  }; // state형태
+}
+```
+
+이렇게 만든다. 그러면 잘 동작한다.
+
+그래서 이 다음에는 todos랑 filter를 파일을 따로 만들어서 관리를 한다.
+
+
+
+### 리듀서 분리 후 redux 함수로 합치기
+
+리듀서를 분리하고 redux에 있는 함수로 합치는 것이다.
+
+이게 뭐냐? combineReducers이다. 이 함수를 사용하면 합쳐진다.
+
+```js
+import { combineReducers } from 'redux';
+
+const todoApp = combineReducers({
+  todos,
+  filter,
+})
+```
+
+그냥 기존 사용했던 todos와 filter를 사용한다.
+
+
+
+- reducers.js
+
+```js
+import { combineReducers } from "redux";
+import { ADD_TODO, COMPLETE_TODO, SHOW_ALL, SHOW_DONE } from "./actions";
+
+// 리듀서 분리 후 수동으로 합치기
+function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+
+
+function filter(previousState, action) { 
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return 'SHOW_ALL'; // 초기값
+  }
+
+  // filter
+  if (action.type === SHOW_DONE) {
+    return "SHOW_DONE";
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return  "SHOW_ALL";
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+
+// export function todoApp(previousState = {}, action) {
+//   return {
+//     todos: todos(previousState.todos, action),
+//     filter: filter(previousState.filter, action),
+//   }; // state형태
+// }
+
+// 리듀서 분리 후 redux 함수로 합치기
+
+export const todoApp = combineReducers({
+  todos,
+  filter,
+})
+```
+
+이제 파일도 분리하자.
+
+
+
+reducers 폴더를 만들자. 그리고 reducers.js를 reducers폴더로 넣고 이름을 index.js로 바꾸자.
+
+
+
+![image-20201230212116614](./img/Reduximg11.png)
+
+그래서 밖에서 볼때는 reducers를 import하면 index.js를 본다.
+
+지금 파일을 이동하고 이름을 변경해서 정상적으로 안 보일 것이니 서버를 내렸다가 올리면 된다.
+
+store.js에서 todoApp을 reducers라는 얘한테 가져오는건데 파일이 없으니 폴더에 index.js에서 가져온다.
+
+그리고 reducers 폴더에 todos.js 파일을 추가해 보자.
+
+그리고 index.js에 있는 
+
+- index.js
+
+```js
+function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+
+```
+
+이 아이를 todos.js 로 옮기고 조금 수정을 하자.
+
+- todos.js
+
+```js
+import { ADD_TODO, COMPLETE_TODO } from "../actions";
+
+export default function todos(previousState, action) { 
+  if (previousState === undefined) {
+    return []; // 초기값
+  }
+  
+  
+  // todos
+  // 변경이 일어나는 로직
+  if (action.type === ADD_TODO) {
+    return [...previousState, {text: action.text, done: false}];
+  }
+  
+  if (action.type === COMPLETE_TODO) {
+    const newTodos = [...previousState];
+    newTodos[action.index].done = true;
+    return newTodos;
+  } 
+
+
+  return previousState;
+}
+```
+
+그리고 reducers폴더에  filter.js파일을 추가하자.
+
+index.js에서 위와 똑같이 filter 부분을 옮겨서 filter.js에서 수정하자.
+
+- filter.js
+
+```js
+import { SHOW_ALL, SHOW_DONE } from "../actions";
+
+export default function filter(previousState, action) { 
+  // 최초에 초기값 할당
+  if (previousState === undefined) {
+    return 'SHOW_ALL'; // 초기값
+  }
+
+  // filter
+  if (action.type === SHOW_DONE) {
+    return "SHOW_DONE";
+  }
+  
+ 	if (action.type === SHOW_ALL) {
+    return  "SHOW_ALL";
+  }
+  
+  // 변경이 안일어났을때 이때만 달라지지 않는다.
+  return previousState;
+}
+```
+
+
+
+그리고 index.js에서 filter와 todos를 추가하자.
+
+- index.js
+
+```js
+import { combineReducers } from "redux";
+import todos from "./todos";
+import filter from "./filter";
+
+export const todoApp = combineReducers({
+  todos,
+  filter,
+})
+```
+
+이렇게 간단하게 되었다.
+
+관심사대로 분리해야한다.
+
+mobx는 Provider가 스토어 별로 생길 수 있다. 
+
