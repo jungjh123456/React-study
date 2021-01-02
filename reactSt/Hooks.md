@@ -1561,6 +1561,415 @@ function App() {
 
 이렇게 훅을 사용하면 된다.
 
+Redux부터 공부하고 Additional Hooks는 이 후에 공부하자.
+
 ## Additional Hooks (추가적인 훅)
 
-useReducer, useCallback, useMemo, useRef
+- useReducer (이전 state와 새로 들어온 액션을 합쳐서 새로운 state로 만들어 주는 것)
+
+- useCallback, useMemo (형제같은 아이들 주의 깊게 봐야한다.)
+
+- useRef
+
+redux-start 폴더에서 해보자
+
+
+
+### useReducer
+
+- 다수의 하윗값을 포함하는 복잡한 정적 로직을 만드는 경우
+- 다음 s tate가 이전 state에 의존적인 경우(previousState와 새로운 action을 받았을 때 새로운 state가 발생하는 걸 의존적인거다. )
+- Redux를 안다면 쉽다.
+
+### *const [state, dispatch] = useReducer(reducer, initialState, init?)*
+
+components 폴더에 Example8.jsx를 만들자.
+
+사실은 useReducer라는 아이는 useState의 확장이다. (비슷한 일을 하는 것이다.)
+
+```js
+  const [state, dispatch] = useReducer(reducer);
+```
+
+- dispatch는 액션을 날려주는 아이
+- reducer는 우리가 알고 있는 한 함수이다.
+
+```js
+const reducer = (previousState, action) => {
+  return previousState;
+}
+```
+
+얘같은 경우에는 state에 undefined이면 previousState를 해줄 필요 없는 이유가
+
+useReducer(reducer)가 초기값이 생성될 때 넣어주는 것이다. 2번째 인자로 초기값을 넣는다.(initialState)
+
+- Example8.jsx
+
+```js
+import React, { useReducer } from "react";
+
+const reducer = (previousState, action) => {
+  if (action.type === "PLUS") {
+    return {
+      count: previousState.count + 1,
+    };
+  }
+  return previousState;
+}
+
+const Example8 = () => {
+  const [state, dispatch] = useReducer(reducer, {count: 0});
+
+  return (
+    <div>
+      <p>You clicked {state.count} times</p>
+      <button onClick={click}>Click me</button>
+    </div>
+  );
+  function click() {
+    dispatch({ type: "PLUS" });
+  }
+}
+
+export default Example8;
+```
+
+
+
+App.js에 가서 추가하면
+
+```js
+import './App.css';
+import TodoListContainer from './containers/TodoListContainer';
+import FormContainer from './containers/FormContainer';
+import Example8 from './components/Example8';
+
+
+function App() {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <TodoListContainer/>
+          <FormContainer />
+          <Example8 />
+        </header>
+      </div>
+    );
+  }
+  
+  export default App;
+
+```
+
+![image-20201230212116614](./img/hocks1.png)
+
+이렇게 나온다.
+
+리듀서 함수를 첫 번째 인자로 하고 두번째 함수로 초기값을 넣으면 배열이 나오는데 앞에는 state가 나오고 두번째는 dispatch 함수가 나온다. 어디서든 dispatch를 호출하면 state가 바뀌게 나오면서 랜더가 다시 된다.
+
+
+
+이 다음에 이제 useMemo의 이야기로 가자
+
+
+
+### useMemo
+
+Example9.jsx 도 만들어 보자.
+
+```js
+import { useState } from "react";
+
+const sum = (persons) => {
+  console.log('sub...');
+  return persons.map(person => person.age).reduce((l, r) => l + r, 0);
+}
+
+const Example9 = () => {
+  const [value, setValue] = useState('');
+  const [persons] = useState([{name: 'Mark', age: 38},{name: 'Hanna', age: 27}])
+
+  function change(e) {
+    setValue(e.target.value);
+  }
+
+  const count = sum(persons);
+
+  return (
+    <div>
+    <Input value={value} onChange={change} />
+    <p>{count}</p>
+    </div>
+  )
+}
+
+export default Example9;
+```
+
+![image-20201230212116614](./img/hocks2.png)
+
+이렇게 잘 나온다.
+
+그런데 input을 타이핑을 하면 sum...이 계속 콘솔에 나올 것이다. 즉 Example9이 다시 랜더 되면서 계산을 다시 하고 있다. 근데 sum은 달라진게 없다 그래서 매번 똑같은 값을 준다. 그 똑같은 연산을 무의미 하게 한다.
+
+그래서 이런 경우에는 persons가 변했을 때만 다시 계산하는게 있는게 좋다. 그래서 이럴 때 쓰는게 useMemo를 사용한다.
+
+첫번째 인자로는 실행될 연산이 들어간다.
+
+```js
+const count = useMemo(() => {
+  return sum(persons);
+});
+```
+
+첫번째 결과로 얘를 한 결과를 얻겠다. 이렇게 하면 워닝이 뜰 꺼다 무시하고 똑같이 sum... 이 발생한다. 
+
+그래서 디팬던시를 2번째 인자에 넣는다. 빈배열을 넣으면 최초에만 한번씩 실행하겠다는 뜻이다.
+
+```js
+const count = useMemo(() => {
+  return sum(persons);
+}, []);
+```
+
+이렇게 하면 잘 될 것이다. 하지만 이것은 워닝이다. persons를 넣어야한다. persons만 달라졌을 때만 이 것을 실행하라는 뜻이다.
+
+```js
+const count = useMemo(() => {
+  return sum(persons);
+}, [persons]);
+```
+
+이걸 잠깐 생각해 보면 이렇게 생각 할 수 있다. persons가 변하지 않았을 때는 기억한다. 이 말을 들으면 기억해야한다. 함수 컴포넌트에서 훅을 사용하면서 발생하는 문제가 useState같은 경우에도 state값을 서로 공유하지 않는 다는 점이다. 매 렌더마다 랜더 사이에 내용을 공유하지 않기 때문에 그것을 공유하게 하는 무언가를 많이 추가했다고 했었다.
+
+앞 뒤가 공유 되는 것은 클래스 컴포넌트이다. 즉 함수 컴포넌트 앞 뒤가 공유되지 않기 때문에 앞 뒤 공유할 일이 생겼을 때 
+
+위 에꺼가 공유할 일이 생긴것이다. persons가 변하지 않았을 때는 앞에꺼를 쓰겠다는 것이다. 
+
+그래서 useMemo도 이런 맥락으로 생긴거다.
+
+### useCallback
+
+useCallback 같은 경우에도 useMemo를 이해했을때 쉽게 이해 할 수 있다.
+
+왜냐하면 useMemo같은 경우 이 함수 안에 있는 연산의 결과를 count에 넣고 기다린다.
+
+useCallback같은 경우에는 함수를 새로 작성하고 싶지 않을 때에 사용하는 것이다.
+
+그게 무슨 경우냐면 함수가 랜더된 사이 input에 뭔가 change가 발생했을때 또 실행 되고 이 실행 될때 무슨 일이 일어난다면 
+
+```js
+  function change(e) {
+    setValue(e.target.value);
+  }
+```
+
+이 change라는 함수는 함수가 Example9함수가 실행 될 때마다 새로 생겨난다. 한번 생긴 아이가 계속 쓰이는게 아니다. 
+
+이렇게 생각할 수도 있다. 매번 새로 생성되지 않아도 되는 함수는 기억을 하고 싶을 수도 있다. 예전에 만든 함수나 지금 만든 함수가 똑같은 경우가 있다. 그래서 useCallback이다. (굉장히 많이 쓰인다)
+
+containers에 FormContainer.jsx에서 보자.
+
+```js
+
+const FormContainer = () => {
+  const dispatch = useDispatch();
+  function add(todo) {
+    dispatch(addTodo(todo))
+  }
+  return <Form add={add} />
+}
+```
+
+이 아이는 dispatch를 가져온 다음에 실행하는 아이이다. 이 add함수는 매번 add라는 이름으로 함수를 새로 생겨내서 Form으로 넣어줄  필요가 있을까? 없을까?  없다.. 이럴때 
+
+```js
+// import { connect } from "react-redux";
+import { useCallback } from "react";
+import { useDispatch } from "react-redux";
+import { addTodo } from "../actions";
+import Form from "../components/Form";
+
+// Container
+// const FormContainer = connect(null, (dispatch) => ({
+//     add: (todo) => {
+//       dispatch(addTodo(todo));
+//   }, // props가 리턴된다.
+// }))(Form);
+
+const FormContainer = () => {
+  const dispatch = useDispatch();
+  // function add(todo) {
+  //   dispatch(addTodo(todo))
+  // }
+  const add = useCallback((todo) => {
+    dispatch(addTodo(todo))
+  },[dispatch]);
+  return <Form add={add} />
+}
+
+export default FormContainer;
+```
+
+이게 최적화랑 만나면 엄청난 힘을 일으키게 된다. 
+
+만약 Form이라는 아이가 함수가 같은 경우에는 렌더가 다시 할 필요가 없다. add라는 함수가 같은 참조를 가지고 있지 않으면 Form은 다시 랜더가 될 것이다. 
+그래서 항상 useCallback을 사용해서 함수를 넘기는 버릇을 길려야 한다. 
+
+함수 컴포넌트에서 항상 혹시 내가 변하지 않는데 새로 만들어서 넣는 건 아닐까? 라는 의심을 해야한다.
+
+마찬가지로 TodoListContainer.jsx에서 바꿔보자.
+
+- TodoListContainer.jsx
+
+```js
+import TodoList from "../components/TodoList";
+import { completeTodo } from '../actions';
+import { useDispatch, useSelector } from "react-redux";
+import { useCallback } from "react";
+
+const TodoListContainer = () => {
+  const todos = useSelector((state) => state.todos);
+  const dispatch = useDispatch();
+
+  const complete = useCallback((index) => {
+    dispatch(completeTodo(index))
+  }, [dispatch])
+  
+  return <TodoList todos={todos} complete={complete} />
+}
+  
+export default TodoListContainer;
+```
+
+
+
+### useRef
+
+그 전에는 함수에는 useRef쓰고 클래스에는 createRef를 쓰라고 했다. 
+
+그 이유는 클래스 컴포넌트에서는 useRef를 사용할 수 없다 훅은 함수 컴포넌트하고 다른 훅 에서만 사용 가능하다.
+
+클래스 컴포넌트는 그 두개에 해당하지 않아서 사용할 수 없다.
+
+useRef도 useMemo랑 일맥상통하는 부분이 있다.
+
+그것을 어떻게 확인할 수 있나면 Form.jsx에서 확인해 보자.
+
+```js
+import React, { useRef } from 'react';
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+
+function Form({add}) {
+  const inputRef = useRef();
+  
+  console.log(inputRef);
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    add(todo);
+    inputRef.current.value = "";
+  }
+}
+
+
+
+export default Form;
+```
+
+![image-20201230212116614](./img/hocks3.png)
+
+이렇게 콘솔에 undefined가 나오는게 맞을 것이다.  왜냐하면 한번도 inputRef에 할당한 상태가 아니다. 그러니 처음에 undefined가 찍히는게 맞다. 그래서 하나 더 만들어서
+
+
+
+```js
+import React, { useRef } from 'react';
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+
+function Form({add}) {
+  const inputUseRef = useRef();
+  const inputCreateRef = React.createRef();
+  
+  console.log(inputUseRef, inputCreateRef);
+  return (
+    <div>
+      <input type="text" ref={inputUseRef}/>
+      <input type="text" ref={inputCreateRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputUseRef.current.value;
+    add(todo);
+    inputUseRef.current.value = "";
+  }
+}
+
+
+
+export default Form;
+```
+
+그러면 최초에 undefined와 null이 나온다.
+
+![image-20201230212116614](./img/hocks4.png)
+
+이건 뭐 큰 차이가 없다 . null하고 싶으면 useRef에 인자로 null을 넣으면 된다.
+
+만약에 input에 쓴다음에 add를 누르면 에러 발생... 그러면 이렇게 하자. 
+
+```js
+import React, { useRef, useState } from 'react';
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+
+function Form({add}) {
+  const [count, setCount] = useState(0)
+  const inputUseRef = useRef();
+  const inputCreateRef = React.createRef();
+  
+  console.log(inputUseRef, inputCreateRef);
+  return (
+    <div>
+      <input type="text" ref={inputUseRef}/>
+      <input type="text" ref={inputCreateRef}/>
+      <button onClick={click}>add</button>
+      <p>count</p>
+    </div>
+  )
+  function click() {
+    // const todo = inputUseRef.current.value;
+    // add(todo);
+    // inputUseRef.current.value = "";
+    setCount((count) => count + 1);
+  }
+}
+
+
+
+export default Form;
+```
+
+이렇게 하고 add를 누르면 콘솔에는 
+
+![image-20201230212116614](./img/hocks5.png)
+
+이렇게 나온다. 즉 훅은 상태를 기억해서 왼쪽 처럼 나오고 createRef는 새로 랜더 되어서 나와서 null로 나온다.
+
+정리해 보면 useRef는 최초에 Form이 생성될때 undefined이다. 그 다음에 render되면서 current자리에 input이 들어온다. 이 폼이 새로 랜더 될때는 그것을 그대로 기억한다. createRef는 새로 reference 객체를 만든다 그래서 그 거에 null이 있는 거다.
+
+그래서 return이 지나서 화면에 표현되면 input createRef에 current자리에 inputCreateRef가 들어가겠지만 새로 렌더가 되면서 새로 만들어진다. 그래서 useRef는 유지가 되지만 createRef는 유지가 않된다.
+function 사이에서 계속 유지되는 값을 가지고 싶을때 useRef를 사용한다. useRef도 마찬가지로 데이터를 매 함수마다 사용하는 function에 성격때문에 그 사이의 역할로 만들어 진게 useRef이다. 
+
+이래서 useRef를 사용하는 것이다.
+
+그냥 앞뒤 렌더 사이에서 계속 유지하고 싶은 데이터가 있을 때만 사용을 한다. (함수 사이에서는 공유가 되지 않으니까 공유를 위해서 생겨났다 그 대표적인게 이 useRef이다. referenc를 계속 쓰겠다 하는 훅이기 때문에)

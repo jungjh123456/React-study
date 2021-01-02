@@ -3009,3 +3009,32 @@ export default TodoListContainer;
 ```
 
 이렇게 컴포넌트를 만들듯이 만들어서 훅을 사용하고 훅에서 나온 자료를 가지고 넣어주는 역할을 한다.
+
+
+
+이제 Form 컨테이너를 바꿔보자.
+
+- Form.jsx
+
+```js
+import TodoList from "../components/TodoList";
+import { completeTodo } from '../actions';
+import { useDispatch, useSelector } from "react-redux";
+
+const TodoListContainer = () => {
+  const todos = useSelector((state) => state.todos);
+  const dispatch = useDispatch();
+
+  function complete(index) {
+    dispatch(completeTodo(index))
+  }
+  return <TodoList todos={todos} complete={complete} />
+}
+  
+export default TodoListContainer;
+```
+
+여기까지가 기본 리덕스이다.
+
+보통 기본 대로 하지 않는다
+
