@@ -1,26 +1,14 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { completeTodo } from '../actions';
-import ReduxContext from '../contexts/ReduxContext';
+import React from 'react';
 
-export default function TodoList() {
-  const store = useContext(ReduxContext);
-  const [todos, setTodos] = useState(store.getState().todos); // todos와 filter를 둘다 가지고 있는 state다
 
-  useEffect(() => {
-    const unsubscribe = store.subscribe(() => {
-      setTodos(store.getState().todos);
-    })
-    return () => {
-      unsubscribe();
-    }
-  }, [store]);
-
+export default function TodoList({todos, complete}) {
+  
   return (
   <div>
     <ul>
       {todos.map((todo,index) => {
         function click() {
-          store.dispatch(completeTodo(index));
+          complete(index);
         }
         if (todo.done) {
           return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
@@ -35,3 +23,4 @@ export default function TodoList() {
   </div>
   )
 }
+

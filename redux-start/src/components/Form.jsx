@@ -1,10 +1,8 @@
-import React, { useContext, useRef } from 'react';
+import React, { useRef } from 'react';
+import { connect } from 'react-redux';
 import { addTodo } from "../actions";
-import ReduxContext from '../contexts/ReduxContext';
 
-export default function Form() {
-  const store = useContext(ReduxContext);
-
+function Form({add}) {
   const inputRef = useRef();
   return (
     <div>
@@ -14,8 +12,11 @@ export default function Form() {
   )
   function click() {
     const todo = inputRef.current.value;
-    addTodo(todo);
-    store.dispatch(addTodo(todo))
+    add(todo);
     inputRef.current.value = "";
   }
 }
+
+
+
+export default Form;

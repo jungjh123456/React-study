@@ -2328,3 +2328,684 @@ export const todoApp = combineReducers({
 
 mobx는 Provider가 스토어 별로 생길 수 있다. 
 
+
+
+이런 폴더 구조 요즘은 이런 스타일로 안한다. 
+
+이건 대게 기초 단계이다. 
+
+
+
+Redux를 안쓰고 연결 한것이다.
+
+1. 단일 store를 만들고
+
+2. subscribe와 getState를 이용하여
+
+3. 변경되는 state데이터를 얻어,
+
+4. props로 계속 아래로 전달.
+
+- componentDidMount - subscribe
+- componentWillUnmount - unsubscribe
+
+TodoList로 가면 state로 todos라는 아이를 두고 이 아이를 subscribe연결해서 setTodos해주는 방식으로 state가 변경하면 렌더가 다시하는 이런 방식으로 처리를 했었는데 클래스에서는 componentDidMount에 subscribe 연결하고 componentWillUnmount에 unsubscribe를 연결해서 subscribe를 하면서 getState 해서 그 아이를 하위의 프롭스로 전달해주는 방식으로 되어 있었다.
+
+이런 스타일은 이 문구를 읽자마자 한가지 떠올려야 한다. 단일 스토어를 만들고 subscibe getstate를 이용해서 변경된 state데이터를 얻어서 프롭스를 계속 아래로 전달 이런거 보면 뭐가 생각날까? 그것은 hoc 이다. hoc는 무언가를 만들어서 props로 전달한다.
+
+hock으로 하는 방식은 props를 안쓰고 있다.
+
+useEffect와 useState를 쓰고 있다. 2개의 차이점을 알아야 한다. 위 에 hoc는 옛날 방식이다.
+
+
+
+## Redux를 React에 연결
+
+- React-redux 쓰고 연결
+
+### react-redux
+
+- Provider 컴포넌트를 제공해준다.
+
+이 Provider 컴포넌트가 뭐냐? 우리고 사용했던 ReduxContext에 있는 .Provider 컴포넌트이다.
+
+그 컴포넌트를 react-redux가 직접 준다. 가장 상위에 store를 세팅해준다.
+
+컨슈머가 필요하다.
+
+- connect 함수를 통해 "컨테이너"를 만들어 준다.
+  - 컨테이너는 스토어의 state와 dispatch를 연결한 컴포넌트에 props로 넣어주는 역할을 한다.
+- 그렇다면 필요한 것은?
+  - 어떤 state를 어떤 props에 연결할 것인지에 대한 정의
+  - 어떤 dispatch(액션)을 어떤 props에 연결할 것인지에 대한 정의
+  - 그 props를 보낼 컴포넌트를 정의(그 props를 특정 컴포넌트를 보내는 것이다.)
+
+같이 하자.
+
+```bash
+npm i react-redux
+```
+
+기존에 index.js를 보자.
+
+
+
+- index.js
+
+```js
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import ReduxContext from './contexts/ReduxContext';
+
+
+ReactDOM.render(
+  <React.StrictMode>
+    <ReduxContext.Provider value={store}>
+      <App />
+    </ReduxContext.Provider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+```
+
+index.js에 Provider에 value를 넣었다. value를 넣고 store를 넣었따.
+
+import ReduxContext from './contexts/ReduxContext'; 이걸 지우고 
+
+- Index.js
+
+```js
+import React from 'react';
+import ReactDOM from 'react-dom';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import store from './store';
+import {Provider} from "react-redux"
+
+
+ReactDOM.render(
+  <React.StrictMode>
+    <Provider store={store}>
+      <App />
+    </Provider>
+  </React.StrictMode>,
+  document.getElementById('root')
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+```
+
+이렇게 명확하게 바뀐다. (setting의 전부이다.)
+
+사용하는 쪽을 가보자.
+
+- App.js
+
+```js
+import './App.css';
+import TodoList from './components/TodoList';
+import Form from './components/Form';
+
+
+function App() {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <TodoList />
+          <Form />
+        </header>
+      </div>
+    );
+  }
+  
+  export default App;
+```
+
+이렇게 해주고 TodoList.jsx로 가서 전부 주석처리하고 진행하자.
+
+기존 TodoList.jsx
+
+- TodoList.jsx
+
+```js
+import React, { useContext, useEffect, useState } from 'react';
+import { completeTodo } from '../actions';
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function TodoList() {
+  const store = useContext(ReduxContext);
+  const [todos, setTodos] = useState(store.getState().todos); // todos와 filter를 둘다 가지고 있는 state다
+
+  useEffect(() => {
+    const unsubscribe = store.subscribe(() => {
+      setTodos(store.getState().todos);
+    })
+    return () => {
+      unsubscribe();
+    }
+  }, [store]);
+
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+```
+
+
+
+바뀐 TodoList.jsx에서 connect hoc를 가져오자((react-redux에 있는))
+
+```js
+const TodoListContainer = connect(/* 설정 */)(todoList);
+export default TodoListContainer;
+```
+
+
+
+- TodoList.jsx
+
+```js
+import React from 'react';
+import { connect } from "react-redux";
+// import { completeTodo } from '../actions';
+
+function TodoList() {
+  const todos = [];
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          // store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+
+const mapStateToProps = () => {};
+const mapDispatchToProps = () => {};
+
+const TodoListContainer = connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )(TodoList);
+export default TodoListContainer;
+```
+
+이렇게 초기 작성을 한다.
+
+mapStateToProps에 인자로 들어오는게 state이다.
+
+state가 들어와서 아래와 같이 todos로 들어오게 하고 싶다.
+
+```js
+function TodoList({todos}) {
+  const todos = [];
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          // store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+```
+
+그러면 어떻게 하나면
+
+```js
+const mapStateToProps = (state) => {
+  return {
+    todos: state.todos,
+  }
+};
+```
+
+이렇게 들어오게 한다.
+
+
+
+전체 TodoList.jsx
+
+```js
+import React from 'react';
+import { connect } from "react-redux";
+// import { completeTodo } from '../actions';
+
+function TodoList() {
+  const todos = [];
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          // store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+
+const mapStateToProps = (state) => {
+  return {
+    todos: state.todos,
+  }
+};
+const mapDispatchToProps = () => {};
+
+const TodoListContainer = connect(
+    mapStateToProps,
+    mapDispatchToProps
+  )(TodoList);
+export default TodoListContainer;
+```
+
+
+
+이제 Form.jsx로 넘어가서
+
+기존 Form.jsx
+
+```js
+import React, { useContext, useRef } from 'react';
+import { addTodo } from "../actions";
+import ReduxContext from '../contexts/ReduxContext';
+
+export default function Form() {
+  const store = useContext(ReduxContext);
+
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    store.dispatch(addTodo(todo))
+    inputRef.current.value = "";
+  }
+}
+```
+
+
+
+바뀐 Form.jsx
+
+```js
+import React, { useRef } from 'react';
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+
+function Form({add}) {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    add(todo);
+    inputRef.current.value = "";
+  }
+}
+
+
+
+const FormContainer = connect(null, (dispatch) => {
+  return {
+    add: (todo) => {
+      dispatch(addTodo(todo));
+    }
+  }; // props가 리턴된다.
+})(Form);
+
+export default FormContainer;
+```
+
+이렇게 바뀐다.
+
+Form.jsx에서 action을 보내는 것 밖에 없다. 그래서 mapStateToProps를 Null로 넣어도 상관없다.
+
+click입장에서는 add라는 함수를 호출 한 것 뿐이다.
+
+이때부터 유행하던 패턴이 뭐냐면 Form 함수가 가리키는 거는 사실은 redux와 관련된 로직이 없다. 부모가 준 함수를 호출하는 것 밖에 없다. 
+
+오히려 form 컨테이너에서 리덕스와의 연결을 다 쳐리 한다.
+
+```js
+
+const FormContainer = connect(null, (dispatch) => {
+  return {
+    add: (todo) => {
+      dispatch(addTodo(todo));
+    }
+  }; // props가 리턴된다.
+})(Form);
+
+export default FormContainer;
+```
+
+그래서 컨테이너 컴포넌트를 따로 분리하는 패턴이 나왔다.
+
+containers 폴더를 만들자. 그리고 그 폴더안에 FormContainer.jsx 와 TodoListContainer.jsx파일을 만들자
+
+그리고 폼에서 사용한 위에 꺼를 FormContainer.jsx로 가져가자.
+
+- FormContainer.jsx
+
+```js
+import { connect } from "react-redux";
+import { addTodo } from "../actions";
+import Form from "../components/Form";
+
+const FormContainer = connect(null, (dispatch) => {
+  return {
+    add: (todo) => {
+      dispatch(addTodo(todo));
+    }
+  }; // props가 리턴된다.
+})(Form);
+
+export default FormContainer;
+```
+
+이렇게 하나의 컨테이너가 완성이 된다.
+
+컴포넌트 입장에서는 Form.js 에서 export default Form을 하고 
+
+```js
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+```
+
+이게 필요 없어졌다. 리엑트 밖에 없다.
+
+```js
+import React, { useRef } from 'react';
+import { connect } from 'react-redux';
+import { addTodo } from "../actions";
+
+function Form({add}) {
+  const inputRef = useRef();
+  return (
+    <div>
+      <input type="text" ref={inputRef}/>
+      <button onClick={click}>add</button>
+    </div>
+  )
+  function click() {
+    const todo = inputRef.current.value;
+    add(todo);
+    inputRef.current.value = "";
+  }
+}
+
+export default Form;
+```
+
+리엑트만 의존해서 리턴해주는 함수를 위에서 받아서 호출하는 역할만 한다. 
+
+(이런 멍청한 컴포넌트 같으냐라구..)
+
+그래서 이를 부를때는 Dumb Component 혹은 Presentational Component 라고 부른다.
+
+그래서 이 아이는 컴포넌트는 어떻게 작성하는 거냐? 뷰에만 더 집중하는 컴포넌트가 되는 거고 
+
+비지니스 로직이나 리덕스 로직을 담당하는 아이를 container라고 부른다. 
+
+이런 로직을 연겨하는 아이를 만든 것이다.
+
+이제 TodoList를 한번 container화 하는 작업을 하자.
+
+왜 나눈 것 일까? 이렇게 생각하자 저렇게 뷰에 관련된 폼이라는 프레젠테이션 컴포넌트같은 경우 저런걸 보통 디자인 시스템화 시킨다.
+
+그리고 관리를 잘 한다. 테스트하기에 용의하고 의존성이 없기 때문에 test를 어떻게 하나? text를 입력하고 add를 눌렸을때 add라는 함수가 호출 했는지만 체크하면 된다.
+
+다 합쳐진거로 테스트 하면 복잡하다. 
+
+뷰를 관리하는 사람은 뷰만 집중하고 유지보수 면에서도 좋다.
+
+TodoList로 넘어가보자
+
+- TodoList.jsx
+
+```js
+import React from 'react';
+// import { completeTodo } from '../actions';
+
+export default function TodoList({todos}) {
+  
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          // store.dispatch(completeTodo(index));
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+
+
+```
+
+
+
+```js
+const TodoListContainer = connect(
+  (state) => ({
+    todos: state.todos,
+  }),
+  (dispatch) => ({})
+  )(TodoList);
+export default TodoListContainer;
+```
+
+얘를 TodoListContainer.jsx로 옮기자
+
+- TodoListContainer.jsx
+
+```js
+import { connect } from "react-redux";
+import TodoList from "../components/TodoList"
+const TodoListContainer = connect(
+  (state) => ({
+    todos: state.todos,
+  }
+  ),
+  (dispatch) => ({})
+  )(TodoList);
+  
+  export default TodoListContainer;
+```
+
+그리고 App.js에서 <TodoList />를 그대로 사용하는게 아니라     <TodoListContainer/>,  <FormContainer />를 사용해야한다.
+
+```js
+import './App.css';
+import TodoListContainer from './containers/TodoListContainer';
+import FormContainer from './containers/FormContainer';
+
+
+function App() {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <TodoListContainer/>
+          <FormContainer />
+        </header>
+      </div>
+    );
+  }
+  
+  export default App;
+```
+
+
+
+왜냐하면 기존에는 Form을 썼다 connect를 안 탔으니까 todo가 undefined라고 떴을텐데 이제 container를 타야지만 TodoList한테 undefined가 아니라 그 데이터를 넣어줄 테니까 사용하는 입장에서는 컴포넌트를 사용하는게 아니라 컨테이너를 사용해야 한다.
+
+TodoList.jsx를 바꿔보자.
+
+- TodoList.jsx
+
+```js
+import React from 'react';
+
+
+export default function TodoList({todos, complete}) {
+  
+  return (
+  <div>
+    <ul>
+      {todos.map((todo,index) => {
+        function click() {
+          complete(index);
+        }
+        if (todo.done) {
+          return  <li style={{textDecoration: "line-through"}}>{todo.text}</li>
+        }
+      return ( 
+        <li>{todo.text}
+        <button onClick={click}>done</button>
+        </li>
+      )
+    })}
+      </ul>
+  </div>
+  )
+}
+```
+
+TodoListContainer.jsx의 connect 2번째 인자를 고치자.
+
+```js
+import { connect } from "react-redux";
+import TodoList from "../components/TodoList";
+import { completeTodo } from '../actions';
+
+const TodoListContainer = connect(
+  (state) => ({
+    todos: state.todos,
+  }),
+  (dispatch) => ({
+    complete: (index) => {
+      dispatch(completeTodo(index));
+    },
+  })
+  )(TodoList);
+  
+export default TodoListContainer;
+```
+
+
+
+자 지금까지 사용했던 connect 함수는 hoc이다. 
+
+하지만 hoc 시대는 갔다. 앞으로는 container를 이런 식으로 잘 쓰지는 않는다.
+
+이제 hocks로 하는 방법을 사용해 보자.
+
+useSelector라는 훅이 있다. react-redux에서 오는 훅이다.
+
+이것은 함수인데 함수를 넣는다. useSelector(() => {})
+
+첫 번째 인자를 state를 넣는다.
+
+TodoListContainer.jsx를 바꾸자.
+
+- TodoListContainer.jsx
+
+```js
+import TodoList from "../components/TodoList";
+import { completeTodo } from '../actions';
+import { useDispatch, useSelector } from "react-redux";
+
+const TodoListContainer = () => {
+  const todos = useSelector((state) => state.todos);
+  const dispatch = useDispatch();
+
+  function complete(index) {
+    dispatch(completeTodo(index))
+  }
+  return <TodoList todos={todos} complete={complete} />
+}
+  
+export default TodoListContainer;
+```
+
+이렇게 컴포넌트를 만들듯이 만들어서 훅을 사용하고 훅에서 나온 자료를 가지고 넣어주는 역할을 한다.
