@@ -13,7 +13,7 @@ const Example9 = () => {
     setValue(e.target.value);
   }
 
-  const count = sum(persons);
+  const count = sum(persons); 
 
   return (
     <div>

@@ -1,10 +1,11 @@
 import {Row, Col, Input, Button} from 'antd';
 import React from "react";
 import styles from './Signin.module.css';
-
-console.log(styles);
+import axios from 'axios';
 
 class Signin extends React.Component {
+  _password = React.createRef();
+
   state = {
     email: '',
     loading: false
@@ -14,6 +15,7 @@ class Signin extends React.Component {
     const isEmail =  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
       email,
     )
+    console.log(this._password);
   return  (
     <form>
     <Row align="middle" className={styles.signin_row}>
@@ -37,16 +39,15 @@ class Signin extends React.Component {
               <span className={styles.required}> *</span>
             </div>
             <div className={styles.input_area}>
-              {/* <Input
+              <Input
                 placeholder="Email"
                 autoComplete="email"
                 name="email"
                 className={styles.input}
-              /> */}
-              <input type="text" value={this.state.email}
+                value={this.state.email}
                 onChange={this.change}
               />
-              {isEmail ? "이메일 맞음" : "이메일 아님"}
+
             </div>
             <div className={styles.password_title}>
               Password
@@ -57,6 +58,7 @@ class Signin extends React.Component {
                 type="password"
                 autoComplete="current-password"
                 className={styles.input}
+                ref={this._password}
               />
             </div>
             <div className={styles.button_area}>
@@ -64,6 +66,7 @@ class Signin extends React.Component {
                 size="large"
                 className={styles.button}
                 onClick={this.click}
+                disabled={!isEmail}
               >
                 Sign In
               </Button>
@@ -75,9 +78,36 @@ class Signin extends React.Component {
   </form>
 )
 };
-  click = () => {
-    console.log('dd')
+
+  click = async () => {
+    const {email} = this.state;
+    const password = this._password.current;
+    console.log("clicked", email, password);
+
+    // 이제 서버로 보내야한다.
+    // const p = axios.port('https://api.marktube.tv/v1/me', {
+    //   email,
+    //   password,
+    // })
+    // p.then((response) => {
+    //   console.log(response);
+    // }).catch((error) => {
+    //   console.log(error);
+    // });
+    try {
+    // 호출 시작 => 로딩 시작
+    const response = await axios.port('https://api.marktube.tv/v1/me', {
+      email,
+      password,
+    });
+    // 호출 완료 (정상)=> 로딩 끝
+      console.log(response);
+  } catch(error){
+    // 호출 완료 (에러) => 로딩 끝
+    console.log(error);
   }
+  }
+
   change = (e) => {
     this.setState({email: e.target.value})
   }
