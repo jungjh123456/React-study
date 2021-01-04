@@ -2386,3 +2386,621 @@ export default class BookList extends React.Component {
 
 
 
+위에 에러를 catch하기 위해 try catch 를 하자.
+
+- BookList.jsx
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined } from "@ant-design/icons";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: false,
+  }
+  render() {
+    const {books, loading} = this.state;
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        <ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    try {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }catch (error) {
+  console.log(error);
+   }
+  }
+}
+
+```
+
+
+
+만약 데이터가 없으면 현재 데이터가 없습니다. 라고 띄어져야한다.	
+
+
+
+```js
+  render() {
+    const {books, loading} = this.state;
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 &&<ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+  }
+      </div>
+    )
+  }
+```
+
+이렇게 하면 데이터가 없을 때는 
+
+![image-20201227173722461](./img/myBook7.png)
+
+이렇게 나올 것이다. 
+
+에러 코드로 위에를 표현하고 싶을 때에는 Error인지 아닌지를 가지고 있다가 그 화면을 보여줘야한다. 그래서 그걸 어디다 보관하는게 좋을까? state에 보관해야한다.
+
+
+
+```js
+  state = {
+    books: [],
+    loading: false,
+    error: null,
+  }
+```
+
+```js
+ try {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }catch (error) {
+  console.log(error);
+  this.setState({loading: false, error})
+   }
+  }
+```
+
+이렇게 error를 넣는다.
+
+```js
+const {books, loading, error} = this.state;
+    console.log(error)
+```
+
+일부려 토큰에 에러를 발생 시켜보자.
+
+콘솔에 찍으면 에러가 보인다.(에러를 발생했을때)
+
+![image-20201227173722461](./img/myBook8.png)
+
+book이 400에러가 발생하고 
+
+![image-20201227173722461](./img/myBook9.png)
+
+Response error가 들어오고 있다. (에러객체에 담겨 잇는 것이다)
+
+```js
+if (error !== null) {
+  console.log(error.response) // 찍으면 error객체가 data쪽에 들어있다.
+}
+```
+
+이 INVALID TOKEN은 서버에서 주는 거다.
+
+error.reponse.data.error를 하면 찍힌다.
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined } from "@ant-design/icons";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: false,
+    error: null,
+  }
+  render() {
+    const {books, loading, error} = this.state;
+    if (error !== null) {
+     const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+     if (errorType === 'INVALID_TOKEN') {
+       return (
+         <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.</p>
+         </div>
+       )
+     }
+    }
+    console.log(error)
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 &&<ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+  }
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    try {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}3ㄹ`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }catch (error) {
+  console.log(error);
+  this.setState({loading: false, error})
+   }
+  }
+}
+
+```
+
+이렇게 쓰면
+
+![image-20201227173722461](./img/myBook10.png)
+
+이렇게 토큰이 에러가 났다는 화면이 출력해 질 것이다.
+
+reload 아이콘을 설정하자.
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: false,
+    error: null,
+  }
+  render() {
+    const {books, loading, error} = this.state;
+    if (error !== null) {
+     const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+     if (errorType === 'INVALID_TOKEN') {
+       return (
+         <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined />}/></p>
+         </div>
+       )
+     }
+    }
+    console.log(error)
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 &&<ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+  }
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    try {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }catch (error) {
+  console.log(error);
+  this.setState({loading: false, error})
+   }
+  }
+}
+
+```
+
+![image-20201227173722461](./img/myBook11.png)
+
+이렇게 리로드 버튼이 나올 것이다. onclick을 달아주자.
+
+그 함수 안에 
+
+```js
+try {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }catch (error) {
+  console.log(error);
+  this.setState({loading: false, error})
+   }
+```
+
+얘를 넣어준다. 하지만 똑같은 코드 2번씩 생긴다. 그래서 짤라내서 함수로 만들자.
+
+
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: false,
+    error: null,
+  }
+  render() {
+    const {books, loading, error} = this.state;
+    if (error !== null) {
+     const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+     if (errorType === 'INVALID_TOKEN') {
+       return (
+         <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.reload}/>}/></p>
+         </div>
+       )
+     }
+    }
+    console.log(error)
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 &&<ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+  }
+      </div>
+    )
+  }
+  getBooks = async () => {
+    try {
+      // 서버에 책 리스트 다오.
+      this.setState({loading: true});
+      const response = await axios.get('https://api.marktube.tv/v1/book', {
+        header: {
+          Authorization: `Bearer ${this.props.token}`,
+        }
+      });
+      await sleep(2000);
+      console.log(response.data);
+      
+      this.setState({books: response.data, loading: true})
+    }catch (error) {
+    console.log(error);
+    this.setState({loading: false, error})
+     }
+  }
+
+  async componentDidMount() {
+   await this.getBooks();
+  }
+
+  reload = async  () => {
+    this.setState({error: null})
+   await this.getBooks();
+  }
+}
+
+```
+
+
+
+이렇게 바꿔주고 누르면 로딩이 된다.
+
+>  ErrorBoundary는 정상적인 에러가 아닐때 사용하는것 (오타가 났을때)
+>
+> 지금의 에러처리는 정상적인 에러처리이다.
+
+```js
+return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 &&(<ul>
+            {books.map((book) => {
+              return <li>{book.title}</li>;
+            })}
+          </ul>)
+        }
+        </div>
+      )
+```
+
+여기를 보자 여긴 정상적으로 끝난 상태이다. list라는 아이한테 title만 출력하고 있다. book이라는 데이터는 사실 title도 들어있고 작가도 들어있고 링크도 들어 있다. 그래서 디자인을 넣자 . 
+
+```js
+  import axios from "axios";
+  import React from "react";
+  import { sleep } from "../utils";
+  import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+  import { Button } from "antd";
+
+
+  export default class BookList extends React.Component {
+    state = {
+      books: [],
+      loading: false,
+      error: null,
+    }
+    render() {
+      const {books, loading, error} = this.state;
+      if (error !== null) {
+      const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+      if (errorType === 'INVALID_TOKEN') {
+        return (
+          <div>
+              <h1>Book List {loading && <LoadingOutlined />}</h1>
+              <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.reload}/>}/></p>
+          </div>
+        )
+      }
+      }
+      console.log(error)
+      return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 && books.map((book) => {
+            return <BookItem {...book} />
+          })}
+        </div>
+      )
+    }
+    getBooks = async () => {
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        
+        this.setState({books: response.data, loading: true})
+      }catch (error) {
+      console.log(error);
+      this.setState({loading: false, error})
+      }
+    }
+
+    async componentDidMount() {
+    await this.getBooks();
+    }
+
+    reload = async  () => {
+      this.setState({error: null})
+    await this.getBooks();
+    }
+  }
+
+```
+
+이렇게 정상 출력했을때 나오는 것을 컴포넌트로 만들자.
+
+```js
+ return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 && books.map((book) => {
+            return <BookItem {...book} />
+          })}
+        </div>
+      )
+```
+
+이렇게 프롭스로 넘겨준다.
+
+그리고 component폴더에 BookItem.jsx를 새로 만든다.
+
+- BookItem.jsx
+
+```js
+export default function BookItem(props) {
+  console.log(props);
+  return <div>책</div>;
+}
+```
+
+
+
+일단 이렇게 만들고 BookList.jsx 에 추가하자.
+
+```js
+  import axios from "axios";
+  import React from "react";
+  import { sleep } from "../utils";
+  import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+  import { Button } from "antd";
+  import BookItem from "./BookItem";
+
+  export default class BookList extends React.Component {
+    state = {
+      books: [],
+      loading: false,
+      error: null,
+    }
+    render() {
+      const {books, loading, error} = this.state;
+      if (error !== null) {
+      const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+      if (errorType === 'INVALID_TOKEN') {
+        return (
+          <div>
+              <h1>Book List {loading && <LoadingOutlined />}</h1>
+              <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.reload}/>}/></p>
+          </div>
+        )
+      }
+      }
+      console.log(error)
+      return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 && books.map((book) => {
+            return <BookItem {...book} />
+          })}
+        </div>
+      )
+    }
+    getBooks = async () => {
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        
+        this.setState({books: response.data, loading: true})
+      }catch (error) {
+      console.log(error);
+      this.setState({loading: false, error})
+      }
+    }
+
+    async componentDidMount() {
+    await this.getBooks();
+    }
+
+    reload = async  () => {
+      this.setState({error: null})
+    await this.getBooks();
+    }
+  }
+
+```
+
+이렇게 하면 잘 화면에 보일 것이다.
+
+Props 데이터는 
+
+```js
+
+/*
+author: "남기성"
+bookId: 4115
+createdAt: "2020-12-22T11:18:35.000Z"
+deletedAt: null
+message: "ok! 주식 사고싶어"
+ownerId: "d2db1700-4445-11eb-b378-0242ac130002"
+title: "집은 없어도 미국 주식은 사고 싶어"
+updatedAt: "2020-12-22T11:18:35.000Z"
+url: "http://m.kyobobook.co.kr/digital/ebook/ebookContents.ink?class_code=02&barcode=4801190107854&seq=&cate_code=1&orderClick=2ft&content_type=&listCateGubun=1&keywordCategoryCd=&keyword
+*/
+```
+
+이렇게 나올 것이다.
+
+- BookItem.jsx
+
+```js
+import { HomeOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+
+export default function BookItem({title,author,message, url}) {
+  return (<div>
+    <h2>{title}{' '}
+    <a href={url} target="_BLANK" rel="noreferrer">
+    <Button icon={<HomeOutlined />} />
+    </a>
+    </h2>
+    <h3>{author}</h3>
+    <p>{message}</p>
+  </div>
+  )
+
+}
+```
+
+![image-20201227173722461](./img/myBook13.png)
+
+이렇게 잘 나올 것이다. (디자인은 그냥 대충 만들었습니다..)
+

@@ -3038,3 +3038,6 @@ export default TodoListContainer;
 
 보통 기본 대로 하지 않는다
 
+
+
+## Redux Advanced(1)
