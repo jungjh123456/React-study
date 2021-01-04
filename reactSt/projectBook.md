@@ -1638,3 +1638,751 @@ class Signin extends React.Component {
 export default Signin;
 ```
 
+그리고 응답 받은 토큰을 찾아서 브라우저 어딘가에 저장한다
+
+```js
+  click = async () => {
+    const {email} = this.state;
+    const password = this._password.current;
+    console.log("clicked", email, password);
+
+    // 이제 서버로 보내야한다.
+    try {
+    // 호출 시작 => 로딩 시작
+    const response = await axios.port('https://api.marktube.tv/v1/me', {
+      email,
+      password,
+    });
+    // 호출 완료 (정상)=> 로딩 끝
+      console.log(response.data.token);
+      // 토큰을 브라우저 어딘가에 저장한다.
+  } catch(error){
+    // 호출 완료 (에러) => 로딩 끝
+    console.log(error);
+  }
+  }
+```
+
+
+
+지금 로딩이 변함에 따라서 sign in의 로딩 중이다 아니다에 따라서 뷰가 달라진다. 
+
+state부분을 바꾸자.
+
+
+
+```js
+ state = {
+    email: '',
+    loading: false
+  }
+  render() {
+    const {email, loading} = this.state;
+```
+
+이렇게 바꿔주자.
+
+```js
+import {Row, Col, Input, Button} from 'antd';
+import React from "react";
+import styles from './Signin.module.css';
+import axios from 'axios';
+
+class Signin extends React.Component {
+  _password = React.createRef();
+
+  state = {
+    email: '',
+    loading: false
+  }
+  render() {
+    const {email, loading} = this.state;
+    const isEmail =  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+      email,
+    )
+    console.log(this._password);
+  return  (
+    <form>
+    <Row align="middle" className={styles.signin_row}>
+      <Col span={24}>
+        <Row className={styles.signin_contents}>
+          <Col span={12}>
+            <img
+              src="img/bg_signin.png"
+              alt="Signin"
+              className={styles.signin_bg}
+            />
+          </Col>
+          <Col span={12}>
+            <div className={styles.signin_title}>My Books</div>
+            <div className={styles.signin_subtitle}>
+              Please Note Your Opinion
+            </div>
+            <div className={styles.signin_underline} />
+            <div className={styles.email_title}>
+              Email
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                placeholder="Email"
+                autoComplete="email"
+                name="email"
+                className={styles.input}
+                value={this.state.email}
+                onChange={this.change}
+              />
+
+            </div>
+            <div className={styles.password_title}>
+              Password
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                type="password"
+                autoComplete="current-password"
+                className={styles.input}
+                ref={this._password}
+              />
+            </div>
+            <div className={styles.button_area}>
+              <Button
+                size="large"
+                loading={loading}
+                className={styles.button}
+                onClick={this.click}
+                disabled={!isEmail}
+              >
+                Sign In
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </Col>
+    </Row>
+  </form>
+)
+};
+
+  click = async () => {
+    const {email} = this.state;
+    const password = this._password.current;
+    console.log("clicked", email, password);
+
+    // 이제 서버로 보내야한다.
+    try {
+    // 호출 시작 => 로딩 시작
+    this.setState({ loading: true });
+    const response = await axios.port('https://api.marktube.tv/v1/me', {
+      email,
+      password,
+    });
+    // sleep
+    await sleep(2000);
+    // 호출 완료 (정상)=> 로딩 끝
+    this.setState({ loading: false })
+      console.log(response.data.token);
+  } catch(error){
+    this.setState({ loading: false })
+    // 호출 완료 (에러) => 로딩 끝
+    console.log(error);
+  }
+  }
+
+  change = (e) => {
+    this.setState({email: e.target.value})
+  }
+}
+export default Signin;
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  })
+}
+```
+
+받아온 토큰을 어딘가에 저장을 해야한다. 콘솔에 Application을 보면 여러 저장소가 있다. 
+
+cookies는 브라우저에 저장해 놓았다가 요청할때 서버로 딸려 들어간다.
+
+local Storage나 session Storage나 indexDB WebSQL은 브라우저가 가지고 있는 스토리지이다. 
+
+```js
+import {Row, Col, Input, Button} from 'antd';
+import React from "react";
+import styles from './Signin.module.css';
+import axios from 'axios';
+
+class Signin extends React.Component {
+  _password = React.createRef();
+
+  state = {
+    email: '',
+    loading: false
+  }
+  render() {
+    const {email, loading} = this.state;
+    const isEmail =  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+      email,
+    )
+    console.log(this._password);
+  return  (
+    <form>
+    <Row align="middle" className={styles.signin_row}>
+      <Col span={24}>
+        <Row className={styles.signin_contents}>
+          <Col span={12}>
+            <img
+              src="img/bg_signin.png"
+              alt="Signin"
+              className={styles.signin_bg}
+            />
+          </Col>
+          <Col span={12}>
+            <div className={styles.signin_title}>My Books</div>
+            <div className={styles.signin_subtitle}>
+              Please Note Your Opinion
+            </div>
+            <div className={styles.signin_underline} />
+            <div className={styles.email_title}>
+              Email
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                placeholder="Email"
+                autoComplete="email"
+                name="email"
+                className={styles.input}
+                value={this.state.email}
+                onChange={this.change}
+              />
+
+            </div>
+            <div className={styles.password_title}>
+              Password
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                type="password"
+                autoComplete="current-password"
+                className={styles.input}
+                ref={this._password}
+              />
+            </div>
+            <div className={styles.button_area}>
+              <Button
+                size="large"
+                loading={loading}
+                className={styles.button}
+                onClick={this.click}
+                disabled={!isEmail}
+              >
+                Sign In
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </Col>
+    </Row>
+  </form>
+)
+};
+
+  click = async () => {
+    const {email} = this.state;
+    const password = this._password.current;
+    console.log("clicked", email, password);
+
+    // 이제 서버로 보내야한다.
+    try {
+    // 호출 시작 => 로딩 시작
+    this.setState({ loading: true });
+    const response = await axios.port('https://api.marktube.tv/v1/me', {
+      email,
+      password,
+    });
+    // sleep
+    await sleep(1000);
+    // 호출 완료 (정상)=> 로딩 끝
+    this.setState({ loading: false })
+    console.log(response.data.token);
+    localStorage.setItem('token', response.data.token);
+  } catch(error){
+    this.setState({ loading: false })
+    // 호출 완료 (에러) => 로딩 끝
+    console.log(error);
+  }
+  }
+
+  change = (e) => {
+    this.setState({email: e.target.value})
+  }
+}
+export default Signin;
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  })
+}
+```
+
+이렇게 로컬 스토리지에 token을 저장하고 page에서 withToken을 사용해 확인해 보자.
+
+- /page/Signin
+
+```js
+import Signin from "../components/Signin";
+import withToken from "../hocs/withToken";
+function SigninPage(props) {
+  // auth
+  console.log(props);
+  return <Signin />
+}
+
+export default withToken(SigninPage);
+```
+
+그러면 콘솔에는 Token이 보일 것이다.
+
+![image-20201227173722461](./img/myBook4.png)
+
+왜 보일까? 그것은 전에 hocs에 만들어놓았다.
+
+```js
+export default function withToken(Component) {
+	const token = localStorage.getItem('token');
+  function NewComponent(props) {
+    return <Component {...props} token={token}/>;
+  }
+	NewComponent.displayName = `withToken(${Component.displayName})` 
+  return NewComponent;
+}
+
+```
+
+다시 page의 Signin에서 보자.
+
+```js
+import { Redirect } from "react-router-dom";
+import Signin from "../components/Signin";
+import withToken from "../hocs/withToken";
+
+function SigninPage(props) {
+  // auth
+  
+  const {token} = props;
+  if (token !== null) {
+    return <Redirect to="/" />;
+  }
+  return <Signin />
+}
+
+export default withToken(SigninPage);
+```
+
+token이 null이면 홈으로 간다.
+
+이제 Home.jsx를 만들자.
+
+```js
+import { Redirect } from "react-router-dom";
+import withToken from "../hocs/withToken"
+
+function Home({token}) {
+  if (token === null) {
+    return <Redirect to="/signin" />
+  }
+  return (
+    <div>
+      <h1>홈</h1>
+    </div>
+  )
+}
+
+export default withToken(Home);
+```
+
+이렇게 token이 없으면 signin으로 가게 한다.
+
+
+
+- Component/ Signin.jsx
+
+```js
+import {Row, Col, Input, Button} from 'antd';
+import React from "react";
+import styles from './Signin.module.css';
+import axios from 'axios';
+import { withRouter } from 'react-router-dom';
+
+class Signin extends React.Component {
+  _password = React.createRef();
+
+  state = {
+    email: '',
+    loading: false
+  }
+  render() {
+    const {email, loading} = this.state;
+    const isEmail =  /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
+      email,
+    )
+    console.log(this._password);
+  return  (
+    <form>
+    <Row align="middle" className={styles.signin_row}>
+      <Col span={24}>
+        <Row className={styles.signin_contents}>
+          <Col span={12}>
+            <img
+              src="img/bg_signin.png"
+              alt="Signin"
+              className={styles.signin_bg}
+            />
+          </Col>
+          <Col span={12}>
+            <div className={styles.signin_title}>My Books</div>
+            <div className={styles.signin_subtitle}>
+              Please Note Your Opinion
+            </div>
+            <div className={styles.signin_underline} />
+            <div className={styles.email_title}>
+              Email
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                placeholder="Email"
+                autoComplete="email"
+                name="email"
+                className={styles.input}
+                value={this.state.email}
+                onChange={this.change}
+              />
+
+            </div>
+            <div className={styles.password_title}>
+              Password
+              <span className={styles.required}> *</span>
+            </div>
+            <div className={styles.input_area}>
+              <Input
+                type="password"
+                autoComplete="current-password"
+                className={styles.input}
+                ref={this._password}
+              />
+            </div>
+            <div className={styles.button_area}>
+              <Button
+                size="large"
+                loading={loading}
+                className={styles.button}
+                onClick={this.click}
+                disabled={!isEmail}
+              >
+                Sign In
+              </Button>
+            </div>
+          </Col>
+        </Row>
+      </Col>
+    </Row>
+  </form>
+)
+};
+
+  click = async () => {
+    const {email} = this.state;
+    const password = this._password.current;
+    console.log("clicked", email, password);
+
+    // 이제 서버로 보내야한다.
+    try {
+    // 호출 시작 => 로딩 시작
+    this.setState({ loading: true });
+    const response = await axios.port('https://api.marktube.tv/v1/me', {
+      email,
+      password,
+    });
+    // sleep
+    await sleep(1000);
+    // 호출 완료 (정상)=> 로딩 끝
+    this.setState({ loading: false })
+    console.log(response.data.token);
+    localStorage.setItem('token', response.data.token);
+    // 페이지를 이동한다.
+    this.props.history.push('/');
+  } catch(error){
+    this.setState({ loading: false })
+    // 호출 완료 (에러) => 로딩 끝
+    console.log(error);
+  }
+  }
+
+  change = (e) => {
+    this.setState({email: e.target.value})
+  }
+}
+export default withRouter(Signin);
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  })
+}
+```
+
+이렇게 하면 홈으로 간다.
+
+홈이 실행 되면서 토큰이 없으면 redirect한다. 
+
+```js
+import { Redirect } from "react-router-dom";
+import withToken from "../hocs/withToken";
+import BookList from "../components/BookList";
+function Home({token}) {
+  if (token === null) {
+    return <Redirect to="/signin" />
+  }
+  return (<BookList />)
+}
+
+export default withToken(Home);
+```
+
+
+
+BookList를 만들자.
+
+```js
+import React from "react";
+export default class BookList extends React.Component {
+  render() {
+    return (
+      <div>
+        <h1>Book List</h1>
+      </div>
+    )
+  }
+}
+```
+
+이렇게 하면 된다.
+
+![image-20201227173722461](./img/myBook6.png)
+
+이렇게 나온다.
+
+const books = [{title: "책 제목"}, {},{}]; 이런 식으로 데이터가 들어온다.
+
+```js
+import axios from "axios";
+import React from "react";
+
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+  }
+  render() {
+    const {books} = this.state;
+    return (
+      <div>
+        <h1>Book List</h1>
+        <ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    // 서버에 책 리스트 다오.
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    console.log(response)
+  }
+}
+```
+
+이렇게 사용한다.
+
+(Authorization: `Bearer...` 는 컨벤션이다. 서버와의 약속이다.)
+
+Response.data를 찍어보면 배열로 나온다. 그래서 이 아니를 넣어준다.
+
+- BookList.jsx
+
+```js
+import axios from "axios";
+import React from "react";
+
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+  }
+  render() {
+    const {books} = this.state;
+    return (
+      <div>
+        <h1>Book List</h1>
+        <ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    // 서버에 책 리스트 다오.
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    console.log(response.data)
+    this.setState({books: response.data})
+  }
+}
+```
+
+너무 빨리 지나가니 component Signin.jsx에 있는 sleep 함수를 새로운 파일 src/ utils.js로 만들어서 export하자.
+
+- utils.js
+
+```js
+export function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, ms);
+  })
+}
+```
+
+그리고 BooList에서 로딩 표시를 위해 state에 loading을 추가하자.
+
+antd에서 디자인 icons를 다운받자.
+
+```bash
+npm i @ant-design/icons
+```
+
+그리고 Loading 아이콘을 추가한다.
+
+- BookList.jsx
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined } from "@ant-design/icons";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: true,
+  }
+  render() {
+    const {books, loading} = this.state;
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        <ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    // 서버에 책 리스트 다오.
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data)
+    this.setState({books: response.data})
+  }
+}
+
+```
+
+그럼 잠시 loading을 true로 바꾸면
+
+![image-20201227173722461](./img/myBook5.png)
+
+돌개 이렇게 된다. 되는걸 확인 되면 다시 false로 만들고 서버에 책 리스트를 할때 적용하자.
+
+```js
+import axios from "axios";
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined } from "@ant-design/icons";
+
+
+export default class BookList extends React.Component {
+  state = {
+    books: [],
+    loading: false,
+  }
+  render() {
+    const {books, loading} = this.state;
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        <ul>
+          {books.map((book) => {
+            return <li>{book.title}</li>;
+          })}
+        </ul>
+      </div>
+    )
+  }
+
+  async componentDidMount() {
+    // 서버에 책 리스트 다오.
+    this.setState({loading: true});
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      header: {
+        Authorization: `Bearer ${this.props.token}`,
+      }
+    });
+    await sleep(2000);
+    console.log(response.data);
+    
+    this.setState({books: response.data, loading: true})
+  }
+}
+
+```
+
+
+

@@ -2,6 +2,8 @@ import {Row, Col, Input, Button} from 'antd';
 import React from "react";
 import styles from './Signin.module.css';
 import axios from 'axios';
+import { withRouter } from 'react-router-dom';
+import { sleep } from '../utils';
 
 class Signin extends React.Component {
   _password = React.createRef();
@@ -64,6 +66,7 @@ class Signin extends React.Component {
             <div className={styles.button_area}>
               <Button
                 size="large"
+                loading={loading}
                 className={styles.button}
                 onClick={this.click}
                 disabled={!isEmail}
@@ -85,24 +88,23 @@ class Signin extends React.Component {
     console.log("clicked", email, password);
 
     // 이제 서버로 보내야한다.
-    // const p = axios.port('https://api.marktube.tv/v1/me', {
-    //   email,
-    //   password,
-    // })
-    // p.then((response) => {
-    //   console.log(response);
-    // }).catch((error) => {
-    //   console.log(error);
-    // });
     try {
     // 호출 시작 => 로딩 시작
+    this.setState({ loading: true });
     const response = await axios.port('https://api.marktube.tv/v1/me', {
       email,
       password,
     });
+    // sleep
+    await sleep(1000);
     // 호출 완료 (정상)=> 로딩 끝
-      console.log(response);
+    this.setState({ loading: false })
+    console.log(response.data.token);
+    localStorage.setItem('token', response.data.token);
+    // 페이지를 이동한다.
+    this.props.history.push('/');
   } catch(error){
+    this.setState({ loading: false })
     // 호출 완료 (에러) => 로딩 끝
     console.log(error);
   }
@@ -112,4 +114,5 @@ class Signin extends React.Component {
     this.setState({email: e.target.value})
   }
 }
-export default Signin;
+export default withRouter(Signin);
+

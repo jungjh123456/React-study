@@ -7,9 +7,10 @@ export default function withToken(Component) {
   function NewComponent(props) {
     return <Component {...props} token={token}/>;
   }
-	NewComponent.displayName = `${Component.displayName} <= withToken` 
+	NewComponent.displayName = `withToken(${Component.displayName})` 
   return NewComponent;
 }
+
 
 // export default withToken(Pepero);
 
