@@ -10,10 +10,10 @@ class Signin extends React.Component {
 
   state = {
     email: '',
-    loading: false
   }
   render() {
-    const { email, loading } = this.state;
+    const { email } = this.state;
+    const { loading } = this.props;
     const isEmail = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(
       email,
     )
@@ -84,30 +84,11 @@ class Signin extends React.Component {
 
   click = async () => {
     const { email } = this.state;
-    const password = this._password.current;
+    const password = this._password.current.state.value;
     console.log("clicked", email, password);
 
-    // 이제 서버로 보내야한다.
-    try {
-      // 호출 시작 => 로딩 시작
-      this.setState({ loading: true });
-      const response = await axios.port('https://api.marktube.tv/v1/me', {
-        email,
-        password,
-      });
-      // sleep
-      await sleep(1000);
-      // 호출 완료 (정상)=> 로딩 끝
-      this.setState({ loading: false })
-      console.log(response);
-      localStorage.setItem('token', response.data.token);
-      // 페이지를 이동한다.
-      this.props.history.push('/');
-    } catch (error) {
-      this.setState({ loading: false })
-      // 호출 완료 (에러) => 로딩 끝
-      console.log(error);
-    }
+    this.props.signin(email, password);
+
   }
 
   change = (e) => {
