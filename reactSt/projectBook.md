@@ -2258,7 +2258,7 @@ export default class BookList extends React.Component {
   async componentDidMount() {
     // 서버에 책 리스트 다오.
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2323,7 +2323,7 @@ export default class BookList extends React.Component {
   async componentDidMount() {
     // 서버에 책 리스트 다오.
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2421,7 +2421,7 @@ export default class BookList extends React.Component {
     // 서버에 책 리스트 다오.
     this.setState({loading: true});
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2484,7 +2484,7 @@ export default class BookList extends React.Component {
     // 서버에 책 리스트 다오.
     this.setState({loading: true});
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2574,7 +2574,7 @@ export default class BookList extends React.Component {
     // 서버에 책 리스트 다오.
     this.setState({loading: true});
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}3ㄹ`,
       }
     });
@@ -2646,7 +2646,7 @@ export default class BookList extends React.Component {
     // 서버에 책 리스트 다오.
     this.setState({loading: true});
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2674,7 +2674,7 @@ try {
     // 서버에 책 리스트 다오.
     this.setState({loading: true});
     const response = await axios.get('https://api.marktube.tv/v1/book', {
-      header: {
+      headers: {
         Authorization: `Bearer ${this.props.token}`,
       }
     });
@@ -2738,7 +2738,7 @@ export default class BookList extends React.Component {
       // 서버에 책 리스트 다오.
       this.setState({loading: true});
       const response = await axios.get('https://api.marktube.tv/v1/book', {
-        header: {
+        headers: {
           Authorization: `Bearer ${this.props.token}`,
         }
       });
@@ -2932,7 +2932,7 @@ export default function BookItem(props) {
         // 서버에 책 리스트 다오.
         this.setState({loading: true});
         const response = await axios.get('https://api.marktube.tv/v1/book', {
-          header: {
+          headers: {
             Authorization: `Bearer ${this.props.token}`,
           }
         });
@@ -3000,7 +3000,7 @@ export default function BookItem({title,author,message, url}) {
 }
 ```
 
-![image-20201227173722461](./img/myBook13.png)
+![image-20201227173722461](./img/myBook14.png)
 
-이렇게 잘 나올 것이다. (디자인은 그냥 대충 만들었습니다..)
+
 

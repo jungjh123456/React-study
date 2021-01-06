@@ -24,12 +24,12 @@ export default function BookList({ books, loading, error, getBooks }) {
     return (
       <div>
         <h1>Book List {loading && <LoadingOutlined />}</h1>
+        <p><button onClick={getBooks}>reload</button></p>
         {books.length === 0 && <p>데이터가 없습니다.</p>}
         {books.length !== 0 && books.map((book) => {
           return <BookItem {...book} />
         })}
       </div>
     );
-
 
 }

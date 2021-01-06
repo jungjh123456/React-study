@@ -1,68 +1,79 @@
-import axios from "axios";
-import { sleep } from "../../utils";
-
+import { push } from "connected-react-router";
+import { createActions, handleActions } from "redux-actions";
+import { call, delay, put, takeEvery } from "redux-saga/effects";
+import AuthService from "../../services/AuthService";
 
 // namespace
-const namespace = 'fds17-my-books/auth';
+const prefix = 'fds17-my-books/auth';
 
 // action types
-const START = namespace + '/START';
-const SUCCESS = namespace + '/SUCCESS';
-const FAIL = namespace + '/FAIL';
-
+const {start, success, fail} = createActions('START', 'SUCCESS', 'FAIL', { prefix });
 
 // initial state
 const initialState = { token: null, loading: false, error: null }; // 초기값 설정
 
 // reducer
-export default function auth(state = initialState, action) {
-  switch (action.type) {
-    case START:
-      return {token: null, loading: true, error: null}
-    case SUCCESS:
-      return {token: action.token, loading: false, error: null}
-    case FAIL:
-      return {token: null, loading: false, error: action.error}
-    default:
-        return state;
-  }
-}
+const auth = handleActions(
+  {
+  START: () => ({token: null, loading: true, error: null}),
+  SUCCESS: (state, action) => ({
+    token: action.payload, 
+    loading: false, 
+    error: null}),
+  FAIL: (state, action) => ({
+    token: null, 
+    loading: false, 
+    error: action.payload
+  }),
+}, 
+initialState, 
+{ prefix },
+);
 
-// action creators
-export const signinStart = () => ({
-  type: START
+export default auth;
+
+// saga
+const SIGNIN_SAGA = prefix + '/SIGNIN_SAGA';
+export const signinSagaStart = (email, password) => ({
+  type: SIGNIN_SAGA, 
+  payload: { email, password },
 });
 
-export const signinSuccess = (token) => ({
-  type: SUCCESS,
-  token
-})
-
-export const signinFail = (error) => ({
-  type: FAIL,
-  error
-})
-// thunk
-export const signinThunk = (email, password) => async (dispatch, getState) => {
+export function* signinSaga(action) {
   try {
     // 호출 시작 => 로딩 시작
-    dispatch(signinStart())
-    const response = await axios.post('https://api.marktube.tv/v1/me', {
-      email,
-      password,
-    });
+    // dispatch(signinStart())
+    yield put(start())
+
+    const { email, password } = action.payload;
+    // const token = await AuthService.login(email, password);
+    const token = yield call(AuthService.login, email, password) 
+    // const token = response.data.token;
     // sleep
-    await sleep(1000);
+    // await sleep(1000);
+    yield delay(2000);
     // 호출 완료 (정상)=> 로딩 끝
-    const token = response.data.token;
-    
-    localStorage.setItem('token', token);
-    dispatch(signinSuccess(token));
+    localStorage.setItem('token', token); // side Effect 발생하는 아이
+    // dispatch(signinSuccess(token));
+    yield put(success(token));
     // 페이지를 이동한다.
-    // this.props.history.push('/');
+
+    // history.push('/'); extraarguments에서 온 history
+    // dispatch(push('/')) // push는 액션 생성 함수
+    yield put(push('/'));
   } catch (error) {
-    this.setState({ loading: false })
+    // dispatch(signinFail(error))
     // 호출 완료 (에러) => 로딩 끝
     console.log(error);
+    yield put(fail(error));
   }
 }
+export function* authSaga() {
+  yield takeEvery(SIGNIN_SAGA, signinSaga);
+}
+
+// export const getAuthSagaStart = () => ({type: BOOKS_SAGA});
+
+// export function* booksSaga() {
+//   yield takeEvery(BOOKS_SAGA, getBooksSaga);
+// }

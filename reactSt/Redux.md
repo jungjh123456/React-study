@@ -3038,6 +3038,2293 @@ export default TodoListContainer;
 
 보통 기본 대로 하지 않는다
 
+# Redux Advanced(1)
 
 
-## Redux Advanced(1)
+
+Redux에서 어떻게 비동기를 사용 할 것인지? Redux middle웨어를 사용해보자.
+
+일단 Redux는 비동기를 사용할 수 없다. Redux는 순수 함수여야 하고 side Effect 즉 부수효과가 없어야 한다.
+
+비동기도 side Effect를 발생 시킨다. 그러면 어떻게 비동기를 사용할 것인지 Redux middle웨어를 사용해 보자.
+
+Redux-thunk, redux-promise-middleware를 배우고 service를 분리하는 것 까지 배워보자.
+
+전에 했던 projectBook에서 이어서 가보자. 아직 안 봤으면 보고 오면 됀다. 이 링크에서 [projectBook](./projectBook.md)
+
+봐라.
+
+```bash
+npm i redux react-redux
+```
+
+이걸 설치하자.
+
+src에 폴더를 하나 만들자.
+
+redux라는 폴더를 만들자. 그리고 그 안에 파일로 actions.js 파일을 만들자. 우리가 하고 싶은것은 로그인 후에 home 화면에 뜰 수 있도록 리덕스로 작업을 할 것이다. 우리가 어떻게 했었는지 BookList.jsx 를 보자.
+
+- BookList.jsx
+
+```js
+  import axios from 'axios';
+  import React from "react";
+  import { sleep } from "../utils";
+  import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+  import { Button } from "antd";
+  import BookItem from "./BookItem";
+
+  export default class BookList extends React.Component {
+    state = {
+      books: [],
+      loading: false,
+      error: null,
+    }
+    render() {
+      const {books, loading, error} = this.state;
+      if (error !== null) {
+      const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+      if (errorType === 'INVALID_TOKEN') {
+        return (
+          <div>
+              <h1>Book List {loading && <LoadingOutlined />}</h1>
+              <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.reload}/>}/></p>
+          </div>
+        )
+      }
+      }
+      console.log(error)
+      return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 && books.map((book) => {
+            return <BookItem {...book} />
+          })}
+        </div>
+      )
+    }
+    getBooks = async () => {
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          headers: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({books: response.data, loading: true})
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+    }
+
+    async componentDidMount() {
+    await this.getBooks();
+    }
+
+    reload = async  () => {
+      this.setState({error: null})
+    await this.getBooks();
+    }
+  }
+
+```
+
+이 중에 
+
+```js
+ getBooks = async () => {
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          headers: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({books: response.data, loading: true})
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+    }
+
+    async componentDidMount() {
+    await this.getBooks();
+    }
+
+    reload = async  () => {
+      this.setState({error: null})
+    await this.getBooks();
+    }
+  }
+```
+
+이 부분  componentDidMount()하면 getBooks()한 거하고 에러나면 reload 한 작업을 기억 할 것이다.
+
+이 했던 걸 어렴풋이 기억이 날 것이다. 구조를 한번 생각을 하자.
+
+초기값을 
+
+```js
+// {books: {books: [], auth: {}, }} => books하나 만들고 auth를 만들고 combineReducer하는 거다.
+```
+
+일단 이런 모습을 생각해 보자. 
+
+일단 books부터 해보자.
+
+일단 action type을 만들어야한다.
+
+- redux, actions.js
+
+```js
+export const BOOK_SUCCESS = 'BOOK_SUCCESS';
+```
+
+이 BOOK_SUCCESS의 의미는 책을 요청해서 성공한 책 데이터를 books: [ ] 이 배열에 넣는거다. 그래서 책 데이터가 아래 bookSuccess함수에 넣어야한다.
+
+
+
+```js
+// action creators
+export const bookSuccess = (books) => ({
+  type: BOOK_SUCCESS,
+  books,
+})
+```
+
+
+
+이제 book에 관련된 reducer를 만들 것이다. 
+
+redux안에 뉴 파일해서 리듀서의 이름을 그대로 쓰자. books.js 를 만들자.
+
+- books.js
+
+```js
+export default function books(state, action) {
+	// 초기값 셋팅
+  
+  // 별일 없으면
+  return state;
+}
+```
+
+인자로 previousState인데 state로 쓰자, 2번째 인자는 액션이 들어온다.
+
+```js
+  if (state === undefined) {
+    return {books: []};
+  }
+```
+
+이 초기값을 줄여서 쓸 수 있다.
+
+```js
+const initialState = {books: []}; // 초기값 설정
+```
+
+얘를 어떻게 쓰나면 만약에 undefined면 자동으로 initialState를 써라 의미로
+
+```js
+const initialState = {books: []}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+	
+  // 별일 없으면
+  return state;
+}
+```
+
+이렇게 사용할 수 있다. 
+
+
+
+그 전에 이렇게 썼었다.
+
+```js
+if ( action.type === BOOK_SUCCESS){
+  return {books: [...state.books, ...action.books]}
+}
+```
+
+이런 식이면 기존에 있던 책에다가 새로운 책을 추가하는 방식이다. 이거는 API가 어떠냐에 따라 다르다. 
+
+그래서 이렇게 안하고 books를 엎어치는 방식으로 하자.
+
+```js
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: []}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+	if ( action.type === BOOK_SUCCESS){
+    return {books: action.books};
+  }
+  // 별일 없으면
+  return state;
+}
+```
+
+보통 새로운 액션이 들어오면
+
+```js
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: []}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+	if ( action.type === BOOK_SUCCESS){
+    return {books: action.books};
+  }
+  	if ( action.type === BOOK_SUCCESS){
+    return {books: action.books};
+  }
+  // 별일 없으면
+  return state;
+}
+```
+
+이런식으로 추가가 된다.
+
+그래서 이걸 언뜻 보면 switch문으로 사용하면 편하겠다는 생각이 든다.
+
+그래서 스위치문으로 바꾸자.
+
+```js
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: []}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+  switch (action.type) {
+    case BOOK_SUCCESS:
+        return {books: action.books};
+      default:
+        return state;
+  }
+}
+```
+
+이렇게 바꾸자. 이게 하나의 리듀서 이다.
+
+이렇게 리듀서를 만들어줫기때문에 합쳐야 한다. 하나밖에 없지만 combineReducer를 해줘야 한다. 그래야 이 books가 하위에 들어가니까이다. 
+
+이 리듀서를 본체 리듀서로 합체 시켜야한다. 그래서 redux폴더에  reducer.js 파일을 만들자.
+
+- reducer.js
+
+```js
+import {combineReducers} from 'redux';
+import books from './books';
+
+const reducer = combineReducers({
+  books,
+});
+
+export default reducer;
+```
+
+이렇게 만든 리듀서 books를 합친다.
+
+자 이제 store를 만들어야한다. redux폴더에서 store.js파일을 생성하자.
+
+```js
+const store = createStore(reducer, )
+```
+
+createStore는 2번째 인수는 initialState가 오고 3번째 인수는 Enhancer가 온다. 이 3번째 인수가 메인이다. (middle ware가 있어서 redux를 쓰는 거다 만약 없다면 useReducer로 하겠다.)
+
+그만큼 redux는 좋다.
+
+```js
+import { createStore } from "redux";
+import reducer from './reducer';
+
+const store = createStore(reducer);
+
+export default store;
+```
+
+
+
+그러면 이제 뭐 하겠어요? store를 가져다가 최상위 컴포넌트에다가 Provider로 감싸고 props에 store를 넣어야한다.
+
+index.js에 해도 되고 App.js에 ErrorBoundary밑에 해도 상관 없다. 
+
+App.js 에서 하도록 하자.
+
+- App.js
+
+```js
+import { ErrorBoundary } from "react-error-boundary";
+import { BrowserRouter, Switch, Route } from "react-router-dom";
+
+// Pages
+import Error from './pages/Error';
+import Signin from './pages/Signin';
+import Home from './pages/Home';
+import NotFound from './pages/NotFound';
+import { Provider } from 'react-redux';
+
+//redux
+
+import store from "./redux/store";
+
+function App() {
+  return (
+   <ErrorBoundary FallbackComponent={Error}>
+     <Provider store={store}>
+      <BrowserRouter>
+        <Switch>
+          <Route path="/signin" component={Signin}/>
+          <Route path="/" exact component={Home}/>
+          <Route component={NotFound}/>
+        </Switch>
+     </BrowserRouter>
+     </Provider>
+   </ErrorBoundary>
+  );
+}
+
+export default App;
+
+```
+
+이렇게 Provider로 감싸 주자.
+
+우리는 이제 컨테이너와 컴포넌트의 관계를 배웟다. 컨테이너를 만들어서 BookList를 땡겨 온다음에 BookList를 컨테이너에서 컴포넌트의 props로 넣어서 주자.
+
+Home으로 가야하는데 페이지는 건들지 말자. Home.jsx에서 사용하는게 BookList 컴포넌트다. 그 컴포넌트에 있는 데이터를 컨테이너로 연결할 것이다.
+
+- 과거 Home.jsx
+
+```js
+import { Redirect } from "react-router-dom";
+import withToken from "../hocs/withToken";
+import BookList from "../components/BookList";
+function Home({token}) {
+  if (token === null) {
+    return <Redirect to="/signin" />
+  }
+  return (<BookList token={token}/>)
+}
+
+export default withToken(Home);
+```
+
+- 컨테이너로 한 Home.jsx
+
+```js
+import { Redirect } from "react-router-dom";
+import withToken from "../hocs/withToken";
+import BookListContainer from '../containers/BookListContainer';
+
+function Home({token}) {
+  if (token === null) {
+    return <Redirect to="/signin" />
+  }
+  return (<BookListContainer token={token}/>)
+}
+
+export default withToken(Home);
+```
+
+이렇게 만들고 src에 새로운 폴더인 containers를 만들고  BookListContainer.jsx를 만들자
+
+- BookListContainer.jsx
+
+```js
+import BookList from "../components/BookList";
+
+export default function BookListContainer({ token }) {
+  return <BookList token={token}/>
+}
+```
+
+여기서 인자로 들어오는게 token이 들어온다. => Home에서 props로 넘겨주고 있음 
+
+redux랑 관계 없이 BookList라는 아이를 바로 연결하지 않고 BookListContainer를 사용해서 그 안에서 BookList를 연결 한 것 뿐이다. 
+
+> 이때 컨테이너를 왜 사용할까? 컨테이너 컴포넌와 일반 컴포넌를 분리하는 이유는 코드를 재사용하기 위함입니다.
+
+자 그러면 여기서 컨테이너에서 뭘 만들어서 컴포넌트한테 보내 줄까요? 
+
+```js
+import { useSelector } from "react-redux";
+import BookList from "../components/BookList";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  return <BookList token={token} books={books} />
+}
+```
+
+이렇게 books를 보내자.
+
+```js
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+```
+
+리덕스를 받아 와서 BookList에 보내준다.
+
+BookList.jsx로 가서 보면 기존에 state라는 것을 두고 books를 사용했는데 이제는 state의 books를 사용하지 않겠다는 거다.
+
+- BookList.jsx
+
+```js
+   state = {
+      books: [],
+      loading: false,
+      error: null,
+    }
+```
+
+이 중 books를 사용하지 않는 다는 것이다.
+
+```js
+  state = {
+      loading: false,
+      error: null,
+    }
+    render() {
+      const { loading, error} = this.state;
+      const { books } = this.props;
+      
+```
+
+이렇게 this.props에서 오는 books를 사용할 것이다. 그리고 아직 데이터가 안온다. 그 이유는 state에 books를 넣어 주고 있다. 
+
+그래서 state한테 books를 넣어주는 아이를 빼주자.
+
+```js
+ try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({ /* books: response.data,*/ loading: true})
+ 	   // 리덕스한테 books: reponse.data, 를 넣어주기를 해야한다.
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+    }
+```
+
+
+
+이제 state한테 관리하던 아이를 redux의 state받아서 쓰기 때문에 api호출한 결과를 받아서 redux한테 넣어줘야한다.
+
+redux한테 넣어주기 위해  어디서 넣어줄까? redux를 넣어주는 함수를 만들어 주고 걔를  아래에서 호출해야한다.
+
+```js
+        console.log(response.data);
+        this.setState({ /* books: response.data,*/ loading: true})
+ 	   // 리덕스한테 books: reponse.data, 를 넣어주기를 해야한다.
+ 			// redux넣어주는 함수
+      }catch (error) {
+      this.setState({loading: false, error})
+```
+
+
+
+BookListContainer.jsx에 있는 연결고리에서
+
+- BookListContainer.jsx
+
+```js
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { bookSuccess } from "../redux/actions";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+
+  const dispatch = useDispatch();
+
+  // request에서 받아온 books를 넣어야한다.
+  const setBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+
+  return <BookList token={token} books={books} setBooks={setBooks} />
+}
+```
+
+이렇게 보낸다. 연결고리 첫번째는 getBooks이다 데이터를 가져온다.
+
+```js
+const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+```
+
+
+
+그 밑에 있는건 setBooks이다. 데이터를 세팅 해준다.
+
+```js
+  const dispatch = useDispatch();
+
+  // request에서 받아온 books를 넣어야한다.
+  const setBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+```
+
+
+
+이렇게 바꿔줫으니 BookList.jsx에 가서 redux한테 books에 response.data를 넣어주자.
+
+- BookList.jsx
+
+```js
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({ /* books: response.data, */loading: true})
+        // 리덕스한테 books: reponse.data, 를 넣어주기를 해야한다.
+         // redux넣어주는 함수
+         this.props.setBooks(response.data);
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+```
+
+
+
+자 이제 다시보면 BookList 사용하던 state의 books를 빼서 리덕스에 state로 넣어준 것이다. 이제 리덕스에서 관리해야지 이런 것이다.
+
+근데 API를 호출할때 에러와 로딩이 BookList state로 동작하고 있다. 그래서 
+
+```js
+  state = {
+      loading: false,
+      error: null,
+    }
+```
+
+얘네도 redux를 관리하게 된다. 
+
+그래서 state의 모양이 바뀔 것이다 actions.js로 가서
+
+```js
+// {books: {books: [], loading: false, error: null }, auth: {},}
+```
+
+이런 상태일것이다. redux로 관리를 할 것이다.
+
+> 프롭스와 스테이트에 따라서 UI의 모습이 다르다.
+>
+> 프롭스로 결정하지 않고 스테이트로 모습을 결정한다. 외부에서 북 리스트를 사용하는 사람의 입장에서는 어떤 모습으로 띌지 이 아이가 스테이트에서 보이게 되지 프롭스에 따라 보이는건 아니다.
+
+storybook이라는 걸 쓰게 된다. 보통 스토리북에는 멍청한 컴포넌트가 가득 차게 된다.  이 컴포넌트가 로딩 중일때 컴포넌트의 책이 몇 권있는지 테스트 할 수 있다. 
+
+지금 우리는 
+
+- BookList.jsx
+
+```js
+   try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({ /* books: response.data, */loading: true})
+        // 리덕스한테 books: reponse.data, 를 넣어주기를 해야한다.
+         // redux넣어주는 함수
+         this.props.setBooks(response.data);
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+```
+
+이 중에 
+
+```js
+this.props.setBooks(response.data);
+```
+
+이거만 리덕스로 바꿨다. 
+
+근데 이제 달라질 것이다. loading과 error도 
+
+```js
+  state = {
+      loading: false,
+      error: null,
+    }
+```
+
+여기서 얻어오는게 아니고
+
+```js
+const { books, loading, error } = this.props;
+```
+
+여기서 얻어오겠다는 거다.
+
+- 전체 BookList.jsx
+
+```js
+  import axios from 'axios';
+  import React from "react";
+  import { sleep } from "../utils";
+  import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+  import { Button } from "antd";
+  import BookItem from "./BookItem";
+
+  export default class BookList extends React.Component {
+
+    render() {
+      const { books, loading, error } = this.props;
+
+      if (error !== null) {
+      const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+      if (errorType === 'INVALID_TOKEN') {
+        return (
+          <div>
+              <h1>Book List {loading && <LoadingOutlined />}</h1>
+              <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.reload}/>}/></p>
+          </div>
+        )
+      }
+      }
+      console.log(error)
+      return (
+        <div>
+          <h1>Book List {loading && <LoadingOutlined />}</h1>
+          {books.length === 0 && <p>데이터가 없습니다.</p>}
+          {books.length !== 0 && books.map((book) => {
+            return <BookItem {...book} />
+          })}
+        </div>
+      )
+    }
+    getBooks = async () => {
+      try {
+        // 서버에 책 리스트 다오.
+        this.setState({loading: true});
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          header: {
+            Authorization: `Bearer ${this.props.token}`,
+          }
+        });
+        await sleep(2000);
+        console.log(response.data);
+        this.setState({ /* books: response.data, */loading: true})
+        // 리덕스한테 books: reponse.data, 를 넣어주기를 해야한다.
+         // redux넣어주는 함수
+         this.props.setBooks(response.data);
+      }catch (error) {
+      this.setState({loading: false, error})
+      }
+    }
+
+    async componentDidMount() {
+    await this.getBooks();
+    }
+
+    reload = async  () => {
+      this.setState({error: null})
+    await this.getBooks();
+    }
+  }
+
+```
+
+이제 BookListContainer.jsx에서 얻어오자 
+
+연결고리가 늘어난다.
+
+- BookListContainer.jsx
+
+```js
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { bookSuccess } from "../redux/actions";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  // request에서 받아온 books를 넣어야한다.
+  const setBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+
+  return <BookList token={token} books={books} loading={loading} error={error} setBooks={setBooks} />
+}
+```
+
+이 다음에 BookList.jsx에서 확인하자.
+
+BookList에 try부분에  시작을 보자. 새로 가져오는 행위를 하는데 시작한다 액션을 발생시켜야 하고 않끈나면 않끝난 액션을 뱔생하려고 리덕스로 처리해야한다.
+
+> 리덕스는 비동기 작업을 지원하지 않는다. 왜 안될까? 리듀서는 순수 함수여서 그렇다. 즉 비동기도 side Effect가 발생한다.
+
+프로미스 같이 시작한다 하는 액션 끝났다는 액션 에러났다는 액션을 해야한다.
+
+액션을 추가해줘야하니 actions.js로 가자.
+
+- actions.js
+
+```js
+// {books: {books: [], loading: false, error: null }, auth: {},}
+// => books하나 만들고 auth를 만들고 combineReducer하는 거다.
+
+// action types
+
+export const BOOK_SUCCESS = 'BOOK_SUCCESS';
+export const BOOK_START = 'BOOK_START';
+export const BOOK_FAIL = 'BOOK_FAIL';
+
+// action creators
+export const bookSuccess = (books) => ({
+  type: BOOK_SUCCESS,
+  books,
+})
+
+// action creators
+export const bookStart = () => ({ // start할때는 없을 것이다.
+  type: BOOK_START,
+})
+
+// action creators
+export const bookFail = (error) => ({
+  type: BOOK_FAIL,
+  error,
+})
+```
+
+
+
+이제 reducer도 이에 대응하는 아이로 바뀌어야 한다.
+
+- Books.js
+
+```js
+import { BOOK_FAIL } from "./actions";
+import { BOOK_START } from "./actions";
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: [], loading: false, error: null}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+  switch (action.type) {
+    case BOOK_SUCCESS:
+        return {books: action.books, loading: false, error: null};
+    case BOOK_START:
+        return { ...state, loading: true, error: null };
+    case BOOK_FAIL:
+        return { ...state, loading: false, error: action.error };
+      default:
+        return state;
+  }
+}
+```
+
+books.js 에서 성공하면 books를 받아오고 시작을 하면 기존 books.를 그대로 두고 loading만 true 실패하면 error는 action.error로 바꿔 주겠다는 것이다.
+
+이제 다 정리 했으니 BookListContainer.jsx에서 
+
+```js
+  const setBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+```
+
+이 부분도 action을 하나하나 생성하는 함수를 만들어야 한다.
+
+- BookListContainer.jsx
+
+```js
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { bookFail, bookStart, bookSuccess } from "../redux/actions";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  // request에서 받아온 books를 넣어야한다.
+  const successBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+
+  const startBooks = useCallback(() => {
+    dispatch(bookStart());
+  }, [dispatch])
+
+  const failBooks = useCallback((error) => {
+    dispatch(bookFail(error));
+  }, [dispatch])
+  return <BookList 
+            token={token} 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            successBooks={successBooks}
+            startBooks={startBooks}
+            failBooks={failBooks} />
+}
+```
+
+이렇게 점점 컨테이너가 커지고 있다.
+
+이렇게 하면 state없이 
+
+```js
+<BookList 
+            token={token} 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            successBooks={successBooks}
+            startBooks={startBooks}
+            failBooks={failBooks} />
+```
+
+이런 아이들을 가져다가 보여주고 이런얘들을 발생시켜서 리덕스의 스테이트를 바꿔주는 그런 아이이다. 
+
+자 이번에는 얘네를 받아서 쓰는 아이들을 바꿔 보자.
+
+- BookList.jsx
+
+```js
+import axios from 'axios';
+import React from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import BookItem from "./BookItem";
+
+export default class BookList extends React.Component {
+
+  render() {
+    const { books, loading, error } = this.props;
+
+    if (error !== null) {
+    const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+    if (errorType === 'INVALID_TOKEN') {
+      return (
+        <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.getBooks}/>}/></p>
+        </div>
+      )
+    }
+    }
+ 
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 && books.map((book) => {
+          return <BookItem {...book} />
+        })}
+      </div>
+    )
+  }
+
+  getBooks = async () => {
+    try {
+      // 서버에 책 리스트 다오.
+      // this.setState({loading: true});
+      this.props.startBooks(); // 로딩이 돌기 시작
+
+      await sleep(2000);
+
+      const response = await axios.get('https://api.marktube.tv/v1/book', {
+        headers: {
+          Authorization: `Bearer ${this.props.token}`,
+        },
+      });
+    
+       this.props.successBooks(response.data);
+    }catch (error) {
+      this.props.failBooks(error);
+    }
+  }
+
+  async componentDidMount() {
+  await this.getBooks();
+  }
+
+
+}
+
+```
+
+BookList 함수형 컴포넌트로 바꾸자.
+
+- BookList.jsx
+
+```js
+import axios from 'axios';
+import React, { useEffect } from "react";
+import { sleep } from "../utils";
+import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import BookItem from "./BookItem";
+
+export default function BookList({ books, loading, error,startBooks, successBooks, failBooks, token }) {
+
+  useEffect(() => {
+    async function getBooks() {
+      try {
+        // 서버에 책 리스트 다오.
+        // this.setState({loading: true});
+        startBooks(); // 로딩이 돌기 시작
+  
+        await sleep(2000);
+  
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      
+          successBooks(response.data);
+      }catch (error) {
+          failBooks(error);
+      }
+    }
+    getBooks();
+  }, [failBooks, startBooks, successBooks, token]);
+
+    if (error !== null) {
+    const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+    if (errorType === 'INVALID_TOKEN') {
+      return (
+        <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.getBooks}/>}/></p>
+        </div>
+      )
+    }
+    }
+ 
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 && books.map((book) => {
+          return <BookItem {...book} />
+        })}
+      </div>
+    );
+
+
+}
+
+```
+
+훅에 콜백함수로는 async함수를 쓸 수 없다고 한다.
+
+failBooks, startBooks, successBooks는 언제 바뀌는 건가? 함수를 새로 만들어 줬을 때만 바뀐다. 미리 BookListContainer에서 useCallback을 사용했다. dispatch가 안바뀌면 안바뀌니까 최초에만 돈다. 이 의미가 잘못 된거가 아니고 이 아이가 만약 useCallback에 놓으면 매번 계속 도는 불행한 사태가 된다.
+
+
+
+우리가 지금 하고 있는 부분이 redux의 액션을 이용해서 비동기 로직을 하고 있다.
+
+가장 첫번째로 한 로직은 우리가 직접 생성자 함수로 다 호출하는 dispatch하는 함수로 만들어서 일일이 다 보내는 방식으로 했다.
+
+BookList의 아이가 결국은 컴포넌트이다. 그래서 이 컴포넌트를 한눈에 읽힐 수 있게 그냥 보면 그렇구나 싶게 불필요한 데이터를 넣지 않는 방법을 사용하자.
+
+Books,loading,error만 데이터로 뷰가 보이고 있다. 그 4가지는 redux의 상태를 바꾸기 위해 불필요하게 BookList에 넣어서 확인을 하고 있다.
+
+```js
+ async function getBooks() {
+      try {
+        // 서버에 책 리스트 다오.
+        // this.setState({loading: true});
+        startBooks(); // 로딩이 돌기 시작
+  
+        await sleep(2000);
+  
+        const response = await axios.get('https://api.marktube.tv/v1/book', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      
+          successBooks(response.data);
+      }catch (error) {
+          failBooks(error);
+      }
+    }
+    getBooks();
+```
+
+ 그래서 위에를 과감하게 한단계 올리도록하자.
+
+
+
+이 아이를 컨테이너로 옮기자.
+
+- BookListContainer.jsx
+
+```js
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { bookFail, bookStart, bookSuccess } from "../redux/actions";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  // request에서 받아온 books를 넣어야한다.
+  const successBooks = useCallback((books) => {
+    dispatch(bookSuccess(books));
+  }, [dispatch])
+
+  const startBooks = useCallback(() => {
+    dispatch(bookStart());
+  }, [dispatch])
+
+  const failBooks = useCallback((error) => {
+    dispatch(bookFail(error));
+  }, [dispatch])
+
+  async function getBooks() {
+    try {
+      // 서버에 책 리스트 다오.
+      // this.setState({loading: true});
+      startBooks(); // 로딩이 돌기 시작
+
+      await sleep(2000);
+
+      const response = await axios.get('https://api.marktube.tv/v1/book', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    
+        successBooks(response.data);
+    }catch (error) {
+        failBooks(error);
+    }
+  }
+  
+  return <BookList 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            getBooks={getBooks}
+          />
+}
+```
+
+
+
+이렇게 하고 BookList.jsx 에서는 
+
+```js
+startBooks, successBooks, failBooks, token
+```
+
+이게 필요 없으니 지우자.
+
+- BookList.jsx
+
+```js
+import React, { useEffect } from "react";
+import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Button } from "antd";
+import BookItem from "./BookItem";
+
+export default function BookList({ books, loading, error, getBooks }) {
+
+  useEffect(() => {
+    getBooks();
+  }, [getBooks]);
+
+    if (error !== null) {
+    const errorType = error.response.data.error; // 찍으면 error객체가 data쪽에 들어있다.
+    if (errorType === 'INVALID_TOKEN') {
+      return (
+        <div>
+            <h1>Book List {loading && <LoadingOutlined />}</h1>
+            <p>유효하지 않은 토큰 입니다.<Button shape="circle" icon={<ReloadOutlined onClick={this.getBooks}/>}/></p>
+        </div>
+      )
+    }
+    }
+ 
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        {books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books.length !== 0 && books.map((book) => {
+          return <BookItem {...book} />
+        })}
+      </div>
+    );
+}
+```
+
+
+
+이제 getBooks를 호출할 뿐이다. 나머지는 보여지는 것만 있다.
+
+이제 BookListContainer.jsx 가서 이쁘게 고치자.
+
+- BookListContainer.jsx
+
+```js
+import axios from "axios";
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { bookFail, bookStart, bookSuccess } from "../redux/actions";
+import { sleep } from "../utils";
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  // // request에서 받아온 books를 넣어야한다.
+  // const successBooks = useCallback((books) => {
+  //   dispatch(bookSuccess(books));
+  // }, [dispatch])
+
+  // const startBooks = useCallback(() => {
+  //   dispatch(bookStart());
+  // }, [dispatch])
+
+  // const failBooks = useCallback((error) => {
+  //   dispatch(bookFail(error));
+  // }, [dispatch])
+
+  const  getBooks = useCallback(async () => {
+    try {
+      // 서버에 책 리스트 다오.
+      // this.setState({loading: true});
+      dispatch(bookStart()); // 로딩이 돌기 시작
+
+      await sleep(2000);
+
+      const response = await axios.get('https://api.marktube.tv/v1/book', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      dispatch(bookSuccess(response.data));
+
+    }catch (error) {
+      dispatch(bookFail(error));
+    }
+  }, [dispatch, token])
+
+  
+  return <BookList 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            getBooks={getBooks}
+          />
+}
+```
+
+이렇게 바뀌었다. 점점 코드가 깔끔해 지는 걸 보고 있다.
+
+이제 어떻게 테스트해야 할까? 생각을 해보자. 
+
+books랑 loading이랑 error 적절히 넣어서 테스트 하면 되고 호출 되자마자 getBooks가 잘 돌아가는지 테스트 하면 된다. 
+
+
+
+여기까지 정리
+
+## Acync Action with Redux
+
+### 비동기 작업을 어디서 하느냐?  
+
+처음에는 컴포넌트에서 했었다. 
+
+- 액션을 분리 한다.
+  - Start
+  - Success
+  - Fail
+  - ...등등
+- dispatch를 할때 해준다.
+  - 당연히 리듀서는 동기적이다. (순수 함수)
+  - dispatch도 동기적이다.
+
+### 비동기 처리가 컴포넌트에 있는 경우
+
+```js
+// src/components/Books.jsx
+import React, { useEffect } from 'react';
+import axios from 'axios';
+import { withRouter } from 'react-router-dom';
+import Book from './Book';
+
+const Books = ({ token, books, loading, error, booksStart, booksSuccess, booksFail }) => {
+  useEffect(() => {
+    if (error === null) return;
+  }, [error]);
+
+  useEffect(() => {
+    async function getBooks() {
+      booksStart();
+      await sleep(1000);
+      try {
+        const res = await axios.get('https://api.marktube.tv/v1/book', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        booksSuccess(res.data);
+      } catch (error) {
+        booksFail(error);
+      }
+    }
+
+    getBooks();
+  }, [token, booksStart, booksSuccess, booksFail]);
+
+  return (
+    <>
+      {books.map((book) => (
+        <Book key={book.bookId} {...book} />
+      ))}
+    </>
+  );
+};
+
+export default Books;
+```
+
+이런게 있었다. 준다음에 아무것도 안해서 container로 옮겼다.
+
+```js
+import React from 'react';
+import Books from '../components/Books';
+import { useDispatch, useSelector } from 'react-redux';
+import { booksStartAction, booksSuccessAction, booksFailAction } from '../redux/actions';
+import axios from 'axios';
+
+const BooksContainer = ({ token }) => {
+  //   const token = useSelector((state) => state.auth.token);
+  const books = useSelector((state) => state.books.books);
+  const loading = useSelector((state) => state.books.loading);
+  const error = useSelector((state) => state.books.error);
+  const dispatch = useDispatch();
+  const booksStart = dispatch(booksStartAction());
+  const booksSuccess = (books) => dispatch(booksSuccessAction(books));
+  const booksFail = (error) => dispatch(booksFailAction(error));
+  async function getBooks() {
+    booksStart();
+    await sleep(1000);
+    try {
+      const res = await axios.get('https://api.marktube.tv/v1/book', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      booksSuccess(res.data);
+    } catch (error) {
+      booksFail(error);
+    }
+  }
+  return (
+    <Books books={books} loading={loading} error={error} getBooks={getBooks} />
+  );
+};
+
+export default BooksContainer;
+```
+
+
+
+## 리덕스 미들웨어
+
+미들웨어는 Redux에 카테고리로 있다. 
+
+- 미들웨어가 디스패치의 앞뒤에 코드를 추가할 수 있게 해준다. (뭔가 디스패치 전과 앞에 뭔가 하고 싶을때)
+- 미들웨어가 여러개면 미들웨어가 순차적으로 실행된다.
+- 두 단계가 있습니다.
+  - 스토어를 만들때 미들웨어를 설저하는 부분
+    - {createStore, applyMiddleware} from redux
+  - 디스패리가 호출될때 실제로 미들웨어를 통과한다.
+- dispatch메소드를 통해 store로 가고 있는 액션을 가로채는 코드
+
+```js
+function middleware1(store) {
+  return next => {
+    console.log('middleware1', 1);
+    return action => {
+      console.log('middleware1', 2);
+      const returnValue = next(action);
+      console.log('middleware1', 3);
+      return returnValue;
+    };
+  };
+}
+
+function middleware2(store) {
+  return next => {
+    console.log('middleware2', 1);
+    return action => {
+      console.log('middleware2', 2);
+      const returnValue = next(action);
+      console.log('middleware2', 3);
+      return returnValue;
+    };
+  };
+}
+```
+
+이걸 복사해서 store.js 로 넣자.
+
+
+
+사용할 때는 
+
+```js
+const store - createStore(reducer , applyMiddleware())
+```
+
+createStore의 두번째 인자로 인핸서가 들어가는 자리에 applyMiddleware라는 리덕스에서 가져온다. 이 함수를 실행한다.
+
+그 인자로 middleware1, middleware2를 넣자.
+
+```js
+import { applyMiddleware, createStore } from "redux";
+import reducer from './reducer';
+
+function middleware1(store) {
+  return next => {
+    console.log('middleware1', 1);
+    return action => {
+      console.log('middleware1', 2);
+      const returnValue = next(action);
+      console.log('middleware1', 3);
+      return returnValue;
+    };
+  };
+}
+
+function middleware2(store) {
+  return next => {
+    console.log('middleware2', 1);
+    return action => {
+      console.log('middleware2', 2);
+      const returnValue = next(action);
+      console.log('middleware2', 3);
+      return returnValue;
+    };
+  };
+}
+
+const store = createStore(reducer, applyMiddleware(middleware1, middleware2));
+
+export default store;
+```
+
+그러면 아래와 같이 콘솔이 찍힌다.
+
+![image-20201227173722461](./img/middleware.png)
+
+이 함수가 이렇게 생겼다.
+
+```js
+function middleware1(store) {
+  return next => {
+    console.log('middleware1', 1);
+    return action => {
+      console.log('middleware1', 2);
+      const returnValue = next(action);
+      console.log('middleware1', 3);
+      return returnValue;
+    };
+  };
+}
+```
+
+얘를 화살표 함수를 바꾸면
+
+```js
+const middleware1 = (store) => (next) => {
+    console.log('middleware1', 1);
+    return action => {
+      console.log('middleware1', 2);
+      const returnValue = next(action);
+      console.log('middleware1', 3);
+      return returnValue;
+    };
+  
+}
+```
+
+함수를 리턴한다. 이 함수는 뭘 리턴하나 또 함수를 리턴한다. 생긴게 좀 그렇다. 
+
+middleware1은 새로 고침할때 생성이 된다. createStore할때 생성이 되는 거고 
+
+```js
+    return action => {
+      console.log('middleware1', 2);
+      const returnValue = next(action);
+      console.log('middleware1', 3);
+      return returnValue;
+    };
+```
+
+얘는 action이 dispatch가 될때 실행이 된다. 
+
+action을 reducer(next)로 실행하는 거고  returnValue는 뉴 스테이트이다. 즉 2번이 dispatch전 3번이 dispatch 이후이다.
+
+진짜로 먼가 미들웨어를 만들고 쓰고 싶으면 여기다 넣고 사용하면 된다.
+
+실제로 해보자.
+
+```js
+const middleware1 = (store) => (next) => {
+    console.log('middleware1', 1);
+    return action => {
+      console.log('middleware1', 2, action);
+      const returnValue = next(action);
+      console.log('middleware1', 3, action);
+      return returnValue;
+    };
+  
+}
+```
+
+이렇게 하면 아래와 같이 나온다.
+
+![image-20201227173722461](./img/middleware1.png)
+
+마음껏 먼가를 할 수 있다는 거다.
+
+일단 액션이 있으니 액션을 변조할 수 있다. 액션 타입을 바꿔서 보내고 페이로드도 조작 할 수 도 있고 store가 있으니 store.getState, store.dispatch, store.subscribe 도 할 수 있다. 우리가 직접 미들웨어를 직접 조작할 일이 거의 없다.
+
+우리가 만든 미들웨어를 쓰는게 아니라 유명한 사람이 쓴 미들웨어를 쓰는 거다.
+
+이걸 공부한 이유는 어떻게 작동하는지 알려고 공부한 것이다.
+
+대표적인 미들웨어는 redux-thunk가 있다. 그 전에 redux-devtools를 설치 해 보자.
+
+우리 프로젝트에 
+
+```bash
+npm install -D redux-devtools-extension
+```
+
+을 설치하자.
+
+미들웨어에서 
+
+```js
+import { createStore, applyMiddleware } from "redux";
+import reducers from "./reducers";
+import { composeWithDevTools } from "redux-devtools-extension";
+
+const store = createStore(reducers, composeWithDevTools(applyMiddleware()));
+
+export default store;
+```
+
+이걸 쓰자.
+
+```js
+import { applyMiddleware, createStore } from "redux";
+import reducer from './reducer';
+import { composeWithDevTools } from "redux-devtools-extension";
+const middleware1 = (store) => (next) => {
+  console.log('middleware1', 1);
+  return action => {
+    console.log('middleware1', 2, action);
+    const returnValue = next(action);
+    console.log('middleware1', 3, action);
+    return returnValue;
+  };
+
+}
+function middleware2(store) {
+  return next => {
+    console.log('middleware2', 1);
+    return action => {
+      console.log('middleware2', 2);
+      const returnValue = next(action);
+      console.log('middleware2', 3);
+      return returnValue;
+    };
+  };
+}
+
+const store = createStore(
+          reducer, 
+          composeWithDevTools(applyMiddleware(middleware1, middleware2)));
+
+export default store;
+```
+
+이렇게 composeWithDevTools를 사용할 것이다.
+
+그리고 chrome에 redux DevTools를 설치하자.
+
+콘솔에 리덕스라는 패널이 뜬다.
+
+![image-20201227173722461](./img/middleware2.png)
+
+위에 같이 뜬다. 액션도 날릴 수도 있고 state도 볼수 있다.
+
+우선은 위에 middleware1,2를 지우자.
+
+## redux-thunk
+
+*https://github.com/reduxjs/redux-thunk*
+
+일단 설치하자.
+
+```bash
+npm install redux-thunk
+```
+
+설치를 하였으니 사용을 해보자.
+
+```js
+import { applyMiddleware, createStore } from "redux";
+import reducer from './reducer';
+import { composeWithDevTools } from "redux-devtools-extension";
+import thunk from "redux-thunk";
+
+
+const store = createStore(
+          reducer, 
+          composeWithDevTools(applyMiddleware(thunk)));
+
+export default store;
+```
+
+이렇게 하면 세팅 끝이다.
+
+코드가 짧다. 
+
+redux-thunk github을 보면 코드가
+
+```js
+function createThunkMiddleware(extraArgument) {
+  return ({ dispatch, getState }) => (next) => (action) => {
+    if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+
+    return next(action);
+  };
+}
+
+const thunk = createThunkMiddleware();
+thunk.withExtraArgument = createThunkMiddleware;
+
+export default thunk;
+```
+
+이렇게 짧다.
+
+아까 사용했던 미들웨어를 보면 
+
+```js
+export default thunk;
+```
+
+이 아이는 
+
+```js
+const thunk = createThunkMiddleware();
+```
+
+이걸 실행한 아이이다.
+
+실행을 하면 결과가 
+
+```js
+({ dispatch, getState }) => (next) => (action) => {
+    if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+
+    return next(action);
+  };
+```
+
+얘다.
+
+
+
+```js
+
+const middleware = ({ dispatch, getState }) => (next) => (action) => {
+    if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+
+    return next(action);
+  };
+
+const middleware1 = (store) => (next) => {
+  console.log('middleware1', 1);
+  return action => {
+    console.log('middleware1', 2, action);
+    const returnValue = next(action);
+    console.log('middleware1', 3, action);
+    return returnValue;
+  };
+
+}
+
+```
+
+두개 함수를 비교하면 action타입이 객체가 나와야하는데 함수로 나온다.
+
+action이 타입이 함수면 action을 실행하고 아니면 원래 action을 리턴하겠다.
+
+
+
+코드가 이게 전부이다.
+
+BookListContainer.jsx에서 함수를 실행해서 dispatch하고 있다.
+
+이제는 이 bookStart()함수가 실행된 결과물이 액션 객체가 아니고 함수이면 아까 
+
+```js
+ if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+```
+
+dispatch와 getState를 넣어서 실행 해 준다는 거다.
+
+actions.js로 와서
+
+- actions.js
+
+```js
+// {books: {books: [], loading: false, error: null }, auth: {},}
+// => books하나 만들고 auth를 만들고 combineReducer하는 거다.
+
+// action types
+
+export const BOOK_SUCCESS = 'BOOK_SUCCESS';
+export const BOOK_START = 'BOOK_START';
+export const BOOK_FAIL = 'BOOK_FAIL';
+
+// action creators
+export const bookSuccess = (books) => ({
+  type: BOOK_SUCCESS,
+  books,
+})
+
+// action creators
+export const bookStart = () => ({ // start할때는 없을 것이다.
+  type: BOOK_START,
+})
+
+// action creators
+export const bookFail = (error) => ({
+  type: BOOK_FAIL,
+  error,
+})
+
+// thunk
+export const getBooksThunk = () => (dispatch, getState) => {
+  // dispatch를 할 수 있다.
+}
+```
+
+dispatch를 할 수 있으니 BookListContainer.jsx에서 
+
+```js
+  try {
+      // 서버에 책 리스트 다오.
+      // this.setState({loading: true});
+      dispatch(bookStart()); // 로딩이 돌기 시작
+
+      await sleep(2000);
+
+      const response = await axios.get('https://api.marktube.tv/v1/book', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      dispatch(bookSuccess(response.data));
+
+    }catch (error) {
+      dispatch(bookFail(error));
+    }
+```
+
+이로직을 그대로 복사해서 actions.js로 가져온다.
+
+- actions.js
+
+```js
+// {books: {books: [], loading: false, error: null }, auth: {},}
+// => books하나 만들고 auth를 만들고 combineReducer하는 거다.
+
+import axios from "axios";
+import { sleep } from "../utils";
+
+// action types
+
+export const BOOK_SUCCESS = 'BOOK_SUCCESS';
+export const BOOK_START = 'BOOK_START';
+export const BOOK_FAIL = 'BOOK_FAIL';
+
+// action creators
+const bookSuccess = (books) => ({
+  type: BOOK_SUCCESS,
+  books,
+})
+
+// action creators
+const bookStart = () => ({ // start할때는 없을 것이다.
+  type: BOOK_START,
+})
+
+// action creators
+const bookFail = (error) => ({
+  type: BOOK_FAIL,
+  error,
+})
+
+// thunk
+export const getBooksThunk = (token) => async (dispatch, getState) => {
+  // dispatch를 할 수 있다.
+  try {
+    // 서버에 책 리스트 다오.
+    // this.setState({loading: true});
+    dispatch(bookStart()); // 로딩이 돌기 시작
+
+    await sleep(2000);
+
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    dispatch(bookSuccess(response.data));
+
+  }catch (error) {
+    dispatch(bookFail(error));
+  }
+}
+```
+
+이렇게 할 수 있다. 이제 BookListContainer.js에서
+
+- BookListContainer.js
+
+```js
+
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { getBooksThunk } from "../redux/actions";
+
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  const  getBooks = useCallback(async () => {
+    dispatch(getBooksThunk(token))
+  }, [dispatch, token])
+
+  
+  return <BookList 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            getBooks={getBooks}
+          />
+}
+```
+
+이렇게 하면 끝이 났다.
+
+다시 로직을 점검해보면 
+
+BookList컴포넌트에서 
+
+- BookList.jsx
+
+```js
+  useEffect(() => {
+    getBooks();
+  }, [getBooks]);
+```
+
+이 컴포넌트가 생성되면 getBooks를 호출할 것인데 이 getBooks는 BookListContainer.jsx에서 
+
+- BookListContainer.jsx
+
+```js
+
+  const  getBooks = useCallback(async () => {
+    dispatch(getBooksThunk(token))
+  }, [dispatch, token])
+
+```
+
+dispatch할 것인데 getBooksThunk를 토큰을 넣어서 실행하면 함수가 나온다. 
+
+그 함수는 actions.js 에 thunk에 있다.
+
+```js
+
+// thunk
+export const getBooksThunk = (token) => async (dispatch, getState) => {
+  // dispatch를 할 수 있다.
+  try {
+    // 서버에 책 리스트 다오.
+    // this.setState({loading: true});
+    dispatch(bookStart()); // 로딩이 돌기 시작
+
+    await sleep(2000);
+
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    dispatch(bookSuccess(response.data));
+
+  }catch (error) {
+    dispatch(bookFail(error));
+  }
+}
+```
+
+이렇게 생긴 함수이다.
+
+이 함수를 받아가면 미들웨어가 store.js 로 가서
+
+```js
+const middleware = ({ dispatch, getState }) => (next) => (action) => {
+    if (typeof action === 'function') {
+      return action(dispatch, getState, extraArgument);
+    }
+
+    return next(action);
+  };
+```
+
+미들웨어가 이렇게 실행된다.
+
+action이 함수니까 그 액션을 dispatch와 getState를 인자로 해서 그것을 리턴을 하는 것이다.
+
+그래서 비동기 작업이 된다. 
+
+비동기 작업이 이제 container에 있지 않고 리덕스로 왔다. 이게 thunk만의 방식이다.
+
+thunk는 비동기 작업을 위해서 쓰는 것만이 아니라 액션 객체가 아니라 액션을 함수형태로 보내서 dispatch를 여러단계로 나눠서 하고 싶을때 사용하는 미들웨어이다. 
+
+모든 부수 효과는 actions에 몰려있다.
+
+조금 더 줄기를 한 방향으로 몰기 위해서 의존 관계를 한 레이어를 분리할 것인데 
+
+api를 호출 하면서 긴 코드를 
+
+```js
+  // dispatch를 할 수 있다.
+  try {
+    // 서버에 책 리스트 다오.
+    // this.setState({loading: true});
+    dispatch(bookStart()); // 로딩이 돌기 시작
+
+    await sleep(2000);
+
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    dispatch(bookSuccess(response.data));
+
+  }catch (error) {
+    dispatch(bookFail(error));
+  }
+```
+
+매번 써야하는 게 복잡하다. 그래서 요런 코드들을 모아두는 역할을 분리하자.
+
+src에 services 폴더를 만들어서 BookService.js로 만들자.
+
+이 BookService에서 뭐 할 꺼냐면 BookAPI를 호출해서 데이털르 가져오거나  작성할때 그런일을 할 때 통하는 유일한 통로로 사용할 것이다.
+
+한번 만들어 보자. 만드는 방식은 사람마다 다르다.
+
+- BookService.js
+
+```js
+import axios from "axios";
+
+export default class BookService {
+  static async getBooks(token) {
+    const response = await axios.get('https://api.marktube.tv/v1/book', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  }
+}
+```
+
+이거의 결과물은 book이다. (response.data니까)
+
+actions.js에서 일일이 axion를 안써도 된다.
+
+- actions.js
+
+```js
+// {books: {books: [], loading: false, error: null }, auth: {},}
+// => books하나 만들고 auth를 만들고 combineReducer하는 거다.
+
+import BookService from "../services/BookService";
+import { sleep } from "../utils";
+
+// action types
+
+export const BOOK_SUCCESS = 'BOOK_SUCCESS';
+export const BOOK_START = 'BOOK_START';
+export const BOOK_FAIL = 'BOOK_FAIL';
+
+// action creators
+const bookSuccess = (books) => ({
+  type: BOOK_SUCCESS,
+  books,
+})
+
+// action creators
+const bookStart = () => ({ // start할때는 없을 것이다.
+  type: BOOK_START,
+})
+
+// action creators
+const bookFail = (error) => ({
+  type: BOOK_FAIL,
+  error,
+})
+
+// thunk
+export const getBooksThunk = (token) => async (dispatch, getState) => {
+  // dispatch를 할 수 있다.
+  try {
+    // 서버에 책 리스트 다오.
+    // this.setState({loading: true});
+    dispatch(bookStart()); // 로딩이 돌기 시작
+
+    await sleep(2000);
+
+    const books = await BookService.getBooks(token);
+    dispatch(bookSuccess(books));
+
+  }catch (error) {
+    dispatch(bookFail(error));
+  }
+}
+```
+
+이게 서비스의 분리의 기본이다. api호출에는 모든 관련된 내용을 BookService로 모을수 있다.
+
+그리고 이런 것도 할 수 있다.
+
+- BookService.js
+
+```js
+import axios from "axios";
+const BOOK_API_URL = 'https://api.marktube.tv/v1/book/';
+export default class BookService {
+  static async getBooks(token) {
+    const response = await axios.get(BOOK_API_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  }
+  
+  static async getBook(token, bookId) {
+    const response = await axios.get(`${BOOK_API_URL}/${bookId}`, 
+     {
+      headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  }
+}
+```
+
+이렇게 만들 수 있다.
+
+사용하는 쪽은 함수만 써서 사용할 수 있게 할 수 있다.
+
+
+
+## redux-promise-middleware
+
+ 그냥 이런 것도 있구나 생각하면 된다.
+
+일단 설치를 해보자.
+
+```bash
+npm i redux-promise-middleware
+```
+
+세팅을 하자.
+
+Store.js에서
+
+```js
+import { applyMiddleware, createStore } from "redux";
+import reducer from './reducer';
+import { composeWithDevTools } from "redux-devtools-extension";
+import thunk from "redux-thunk";
+import promise from 'redux-promise-middleware';
+
+
+const store = createStore(
+          reducer, 
+          composeWithDevTools(applyMiddleware(thunk, promise)));
+
+export default store;
+```
+
+
+
+세팅은 끝났고 BookListContainer에서 
+
+```js
+  const getBooks = useCallback(async () => {
+    dispatch(getBooksThunk(token))
+  }, [dispatch, token])
+
+```
+
+
+
+getBooksThunk를 dispatch하고 있는데 이걸 dispatch 하는게 아니고 actions.js에서
+
+
+
+- actions.js
+
+```js
+
+export const getBooksPromise = (token) => async (dispatch, getState) => {
+  // dispatch를 할 수 있다.
+  try {
+    // 서버에 책 리스트 다오.
+    // this.setState({loading: true});
+    dispatch(bookStart()); // 로딩이 돌기 시작
+
+    await sleep(2000);
+
+    const books = await BookService.getBooks(token);
+    dispatch(bookSuccess(books));
+
+  }catch (error) {
+    dispatch(bookFail(error));
+  }
+}
+```
+
+추가 한 후에 BookListContainer.jsx에서 
+
+```js
+
+import { useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import BookList from "../components/BookList";
+import { getBooksPromise, getBooksThunk } from "../redux/actions";
+
+
+export default function BookListContainer({ token }) {
+  // redux 와의 연결고리
+  const books = useSelector((state) => state.books.books); // useSelector를 가지고 가져올 수 있다.
+  const loading = useSelector((state) => state.books.loading); 
+  const error = useSelector((state) => state.books.error);
+
+  const dispatch = useDispatch();
+
+  const getBooks = useCallback(async () => {
+    dispatch(getBooksPromise(token))
+  }, [dispatch, token])
+
+  
+  return <BookList 
+            books={books} 
+            loading={loading} 
+            error={error} 
+            getBooks={getBooks}
+          />
+}
+```
+
+이렇게 사용하겠다. 일단 똑같이 돌아가긴 한다.
+
+다시 actions.js에서 함수로 주지 않고 객체로 준다는 것이다.
+
+- actions.js
+
+```js
+
+export const BOOKS = 'BOOKS'
+export const getBooksPromise = (token) => ({
+  type: BOOKS,
+  payload: BookService.getBooks(token),
+})
+```
+
+이렇게 하면 BOOKS_PENDING 액션이 발행되고 BOOKS_FULFILLED라는 액션이 발행 되었고 타입은 BOOKS_FULFILLED이고 payload인 books가 왔다. getbooks의 결과물인 payload로 왔다. 만약 에러가 발생하면
+
+BOOKS_PENDING 을 지나고 ,BOOKS_REJECTED로온다. 
+
+![image-20201227173722461](./img/middleware3.png)
+
+이게 자동으로 BOOKS_PENDING으로 날라오고 
+
+```js
+
+export const BOOKS = 'BOOKS';
+export const BOOKS_PENDING = 'BOOKS_PENDING';
+export const BOOKS_FULFILLED = 'BOOKS_FULFILLED';
+export const BOOKS_REJECTED = ' BOOKS_REJECTED';
+
+export const getBooksPromise = (token) => ({
+  type: BOOKS,
+  payload: BookService.getBooks(token),
+})
+```
+
+BOOKS라는 이름 타입으로 액션 객체로 만들어서 날렸더니 페이로드에 프로미스가 있는 경우에 BOOS_PENDING을 호출해 주고 FULFILLED와 REJECTED를 프로미스 동작에 맞춰서 자동으로 발행시킨다. 이렇게 만들어놓으면 얘네를 대응하는 아이를 
+
+books.js에서 매칭해 줘야한다.
+
+```js
+import { BOOKS_FULFILLED, BOOKS_PENDING, BOOKS_REJECTED, BOOK_FAIL } from "./actions";
+import { BOOK_START } from "./actions";
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: [], loading: false, error: null}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+  switch (action.type) {
+    case BOOK_SUCCESS:
+      return {books: action.books, loading: false, error: null};
+      case BOOKS_FULFILLED:
+        return {books: action.payload, loading: false, error: null};
+    case BOOK_START:
+      case BOOKS_PENDING:
+        return { ...state, loading: true, error: null };
+    case BOOK_FAIL:
+      case BOOKS_REJECTED:
+        return { ...state, loading: false, error: action.error };
+      default:
+        return state;
+  }
+}
+```
+
+이렇게 만들어 논다.
+
+자동으로 액션 이름이 자동으로 붙어서 자동으로 형식으로 맞춰서 우리한테 전달을 해준다.
+
+Rejected는 조금 다르다. 일부려 에러를 발생시켜보자. 
+
+![image-20201227173722461](./img/middleware4.png)
+
+error에 true가 찍히고 payload에 에러객체가 들어온다.
+
+그래서 books.js에서도 rejected도 따로 만들어 줘야한다.
+
+
+
+```js
+import { BOOKS_FULFILLED, BOOKS_PENDING, BOOKS_REJECTED, BOOK_FAIL } from "./actions";
+import { BOOK_START } from "./actions";
+import { BOOK_SUCCESS } from "./actions";
+
+const initialState = {books: [], loading: false, error: null}; // 초기값 설정
+
+export default function books(state = initialState, action) {
+  switch (action.type) {
+    case BOOK_SUCCESS:
+      return {books: action.books, loading: false, error: null};
+      case BOOKS_FULFILLED:
+        return {books: action.payload, loading: false, error: null};
+    case BOOK_START:
+      case BOOKS_PENDING:
+        return { ...state, loading: true, error: null };
+    case BOOK_FAIL:
+      return { ...state, loading: false, error: action.error };
+      case BOOKS_REJECTED:
+        return { ...state, loading: false, error: action.payload };
+      default:
+        return state;
+  }
+}
+```
+
+
+
+
+
+Redux Advanced 실전에 가까운 기술을 배우자. 다음 링크로 넘어가자.
+
+- [ReduxAdvanced(2)](./ReduxAdvanced.md)
+

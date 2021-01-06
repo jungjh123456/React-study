@@ -1,9 +1,6 @@
 import { Row, Col, Input, Button } from 'antd';
 import React from "react";
 import styles from './Signin.module.css';
-import axios from 'axios';
-import { withRouter } from 'react-router-dom';
-import { sleep } from '../utils';
 
 class Signin extends React.Component {
   _password = React.createRef();
@@ -95,5 +92,5 @@ class Signin extends React.Component {
     this.setState({ email: e.target.value })
   }
 }
-export default withRouter(Signin);
+export default Signin;
 
