@@ -2,55 +2,48 @@ import logo from './logo.svg';
 import './App.css';
 import React from 'react';
 
-class Foo extends React.Component {
-  state = {};
+const Person = React.memo(({name, age}) => { 
+  return (
+    <ul>
+      {name} / {age}
+    </ul>
+  );
+})
+const App = () => {
+  const [state, setState] = useState({
+    text: "",
+    persons: [
+      { id: 1, name: "Mark", age: 37 },
+      { id: 2, name: "Anna", age: 26 },
+    ]
+  });
 
-  componentDidMount() {
-    console.log("Foo componentDidMount", this.props.children);
-  }
 
-  componentWillUnmount() {
-    console.log("Foo componentWillUnmount");
-  }
+  console.log("App render");
+  const { text, persons } = state;
 
-  static getDerivedStateFromProps(nextProps, prevState) {
-    console.log("Foo getDerivedStateFromProps", nextProps, prevState);
-    return {};
-  }
-
-  render() {
-    console.log("Foo render", this.props.children);
-    return <p>{this.props.children}</p>;
-  }
-}
-
-class App extends React.Component {
-  state = {
-    count: 0
+  const change = e => {
+      setState({
+      ...state,
+      text: e.target.value
+    });
   };
-  componentDidMount() {
-    setTimeout(() => {
-      this.setState({
-        count: this.state.count + 1
-      });
-    }, 3000);
-  }
-  render() {
-    if (this.state.count % 2 === 0) {
-      return (
-        <ul>
-          <Foo key="2">second</Foo>
-          <Foo key="3">third</Foo>
-        </ul>
-      );
-    }
-    return (
+
+  const click = () => {
+    console.log(this.state.text);
+  };
+
+  return (
+    <div>
+      <input type="text" value={text} onChange={change} />
+      <button onClick={click}>click</button>
       <ul>
-        <Foo key="1">first</Foo>
-        <Foo key="2">second</Foo>
-        <Foo key="3">third</Foo>
+        {persons.map(p => (
+          <Person {...p} key={p.id} />
+        ))}
       </ul>
-    );
-  }
+    </div>
+  );
+
 }
 export default App;

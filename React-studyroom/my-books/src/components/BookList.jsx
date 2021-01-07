@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { LoadingOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button } from "antd";
 import BookItem from "./BookItem";
+import { Link } from "react-router-dom";
 
 export default function BookList({ books, loading, error, getBooks }) {
 
@@ -24,10 +25,13 @@ export default function BookList({ books, loading, error, getBooks }) {
     return (
       <div>
         <h1>Book List {loading && <LoadingOutlined />}</h1>
-        <p><button onClick={getBooks}>reload</button></p>
+        <p>
+          <button onClick={getBooks}>reload</button>
+          <Link to="/add">Add</Link>
+        </p>
         {books.length === 0 && <p>데이터가 없습니다.</p>}
         {books.length !== 0 && books.map((book) => {
-          return <BookItem {...book} />
+          return <BookItem {...book} key= {book.bookId}/>
         })}
       </div>
     );
