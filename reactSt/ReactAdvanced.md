@@ -2391,3 +2391,339 @@ Link를 하자. 처음 state는
 이렇게 두가지 방법이 있는데 둘 중에 첫번째 방법으로 하는게 요즘 트렌드이다. 
 
 요즘 인스타그램을 쓰다가 만약 순간적으로 인터넷이 안 될때 뭘 작성하면 일단 작성된 글이 나의 클라이언트한테는 보이는데 서버에 연결이 안됬습니다. 라고 뜬다 나중에 추 후에 이 방식이 첫 번째 방식이다. 
+
+현재 리덕스에는 books 스테이트가 빈 배열로 나온다.
+
+![image-20201227173722461](./img/mybooks5.png)
+
+빈배열이 나온다. 그래서 만약에 최초에만 잘못됬을때만 책에 데이터를 받아오겠다는 작업을 할 수 있다.
+
+그래서 books.js에서 initial state 에 현재 books초기값이 배열인데 null로 시작하자.
+
+```js
+// initial state
+const initialState = {books: null, loading: false, error: null}; // 초기값 설정
+
+```
+
+만약에 getBooksSaga를 통해서 들어올때 로딩이 될때는 필요없겠지만 로딩이 끝나고 책을 가져와서 이런 행위를 하는 경우는 어떻게 해야하나 만약 책의 데이터가 null일때만 이런 행동을 하면 되겠죠
+
+- books.jsx
+
+```js
+
+// saga
+function* getBooksSaga() {
+  // 로직
+  try {
+    yield put(start());
+    // dispatch(bookStart()); // 로딩이 돌기 시작
+    yield delay(2000);
+
+    const previousBooks = yield select(state => state.books.books);
+
+    if (previousBooks === null) {
+    
+    // const books = await BookService.getBooks(getState().auth.token);
+    const token = yield select(state => state.auth.token);
+    const books = yield call(BookService.getBooks, token); 
+    
+    // dispatch(bookSuccess(books));
+    yield put(success(books));
+    }
+  }catch (error) {
+    // dispatch(bookFail(error));
+    yield put(fail(error));
+  }
+}
+```
+
+이렇게 하고 BookList.jsx에 가서
+
+
+
+- BookList.jsx
+
+```js
+    return (
+      <div>
+        <h1>Book List {loading && <LoadingOutlined />}</h1>
+        <p>
+          <button onClick={getBooks}>reload</button>
+          <Link to="/add">Add</Link>
+        </p>
+        {books && books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books && books.length !== 0 && books.map((book) => {
+          return <BookItem {...book} key= {book.bookId}/>
+        })}
+      </div>
+    );
+
+```
+
+이렇게 하면 된다. 이렇게 하면 add갔다가 돌아오면 그대로 남아있다. 로딩하는 것도 빼버리자
+
+
+
+- books.js
+
+```js
+// saga
+function* getBooksSaga() {
+  // 로직
+  try {
+    yield put(start());
+    // dispatch(bookStart()); // 로딩이 돌기 시작
+    yield delay(2000);
+
+    const previousBooks = yield select(state => state.books.books);
+
+    if (previousBooks !== null) return;
+    
+    // const books = await BookService.getBooks(getState().auth.token);
+    const token = yield select(state => state.auth.token);
+    const books = yield call(BookService.getBooks, token); 
+    
+    // dispatch(bookSuccess(books));
+    yield put(success(books));
+    
+  }catch (error) {
+    // dispatch(bookFail(error));
+    yield put(fail(error));
+  }
+}
+```
+
+그리고 책을 추가하면 fail이 뜬다.
+
+![image-20201227173722461](./img/mybooks6.png)
+
+이렇게 실패가 뜬다 실패가 뜨는 이유는  지금 아래 부분인데
+
+```js
+// saga
+function* addBookSaga(action) {
+  // 로직
+  try {
+    const book = action.payload;
+    const books = yield select(state => state.books.books); 
+    yield put(success(produce(books, (draft) => {
+      draft.push(book);
+    })));
+    yield put(push('/'))
+  }catch (error) {
+    // dispatch(bookFail(error));
+    yield put(fail(error));
+  }
+}
+
+```
+
+아마도 fail이 뜨고 잇따 왜 fail이 뜨고 있는지 보면 이건 애플리케이션이라서 books를 얻어오면 배열이 아니다. null일 수도 있다. 
+
+그래서 보통 지금같은 경우에는 books같은 거 가지고 전체 애플리케이션을 관장하고 있기 때문에 백그라운드에서 받아 놓으면 된다.
+
+그래서 AddForm에서
+
+- AddForm.jsx
+
+```js
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+
+const AddForm = ({ addBook, getBooks }) => {
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+
+  const urlRef = useRef();
+  const messageRef = useRef();
+
+  useEffect(() => {
+    getBooks();
+  }, [getBooks]);
+
+  const changeTitle = useCallback((e) => {
+    setTitle(e.target.value);
+  }, []);
+
+  const changeAuthor = useCallback((e) => {
+    setAuthor(e.target.value);
+  }, []);
+
+  const create = useCallback(() => {
+    const url = urlRef.current.value;
+    const message = messageRef.current.value;
+
+    console.log(title, author, url, message);
+
+    if (title === '' || author === '' || url === '' || message === '') {
+      return;
+    }
+
+    // 비동기 로직
+    addBook({ title, author, url, message });
+  }, [title, author, addBook]);
+
+  return (
+    <div>
+      <h1>Add Page</h1>
+      <p>
+        Title : <input type="text" value={title} onChange={changeTitle} />
+      </p>
+      <p>
+        Author : <input type="text" value={author} onChange={changeAuthor} />
+      </p>
+      <p>
+        Url : <input type="text" ref={urlRef} defaultValue="https://" />
+      </p>
+      <p>
+        Message : <input type="text" ref={messageRef} />
+      </p>
+      <p>
+        <button onClick={create}>생성</button>
+      </p>
+    </div>
+  );
+};
+
+export default AddForm;
+```
+
+이렇게 받아 놓으면 된다.
+
+이런식으로 유저에게 빠르게 돌아가는 거 같다 라는 느낌을 줄 수 있다.
+
+AddFormContainer.jsx에서 하나 또 만들고
+
+```js
+import React, { useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+import AddForm from '../components/AddForm';
+import { addBookSagaStart, getBooksSagaStart } from '../redux/modules/books';
+
+const AddFormContainer = () => {
+  const dispatch = useDispatch();
+  const getBooks = useCallback(
+    () => {
+      dispatch(getBooksSagaStart());
+    },
+    [dispatch],
+  );
+  const addBook = useCallback(
+    (book) => {
+      dispatch(addBookSagaStart(book));
+    },
+    [dispatch],
+  );
+  return <AddForm addBook={addBook} getBooks={getBooks}/>;
+};
+
+export default AddFormContainer;
+```
+
+이렇게 하면 books가 들어와 있을 것이다. (add창) 그리고 새로 추가하면 아래로 추가 될 것이다.
+
+![image-20201227173722461](./img/mybooks7.png)
+
+![image-20201227173722461](./img/mybooks8.png)
+
+그리고 역순으로 출력해보자.
+
+service가서 바꿔좋자.
+
+
+
+- BookService.js
+
+```js
+import axios from "axios";
+const BOOK_API_URL = 'https://api.marktube.tv/v1/book/';
+export default class BookService {
+  static async getBooks(token) {
+    const response = await axios.get(BOOK_API_URL, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data.reverse();
+  }
+  
+  static async getBook(token, bookId) {
+    const response = await axios.get(`${BOOK_API_URL}/${bookId}`, 
+     {
+      headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    return response.data;
+  }
+}
+```
+
+그리고 추가할때 위로 쌓이게 하려면 push 하지말고 ...book을 풀자
+
+- books.js
+
+```js
+// saga
+function* addBookSaga(action) {
+  // 로직
+  try {
+    const book = action.payload;
+    const books = yield select(state => state.books.books); 
+    yield put(success([book,...books]));
+    yield put(push('/'))
+  }catch (error) {
+    // dispatch(bookFail(error));
+    yield put(fail(error));
+  }
+}
+```
+
+
+
+어느 사람은 add가서 서버에 넣고 돌아올 수 있다. 그런 스펙으로 해보자.
+
+
+
+저 book을 서버로 가넣어야한다.
+
+```js
+// saga
+function* addBookSaga(action) {
+  // 로직
+  try {
+    const token = yield select(state => state.auth.token);
+    const book = yield call(BookService.addBook, token, action.payload); 
+
+    const books = yield select(state => state.books.books); 
+    yield put(success([book,...books]));
+    yield put(push('/'))
+  }catch (error) {
+    // dispatch(bookFail(error));
+    yield put(fail(error));
+  }
+}
+```
+
+이제 무궁무진하게 왔다갔다 할수 있다. 데이터가 다 있으니까
+
+addBook을 만들려 가야한다.
+
+- BookService.js
+
+```js
+
+  static async addBook(token, book) {
+    const response = await axios.post(BOOK_API_URL, book, {
+      headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+  return response.data;
+}
+```
+
+이렇게 만들고 결과를 books.js로 가자
+

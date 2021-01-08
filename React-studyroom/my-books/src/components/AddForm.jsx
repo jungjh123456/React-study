@@ -1,11 +1,15 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
-const AddForm = ({ addBook }) => {
+const AddForm = ({ addBook, getBooks }) => {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
 
   const urlRef = useRef();
   const messageRef = useRef();
+
+  useEffect(() => {
+    getBooks();
+  }, [getBooks]);
 
   const changeTitle = useCallback((e) => {
     setTitle(e.target.value);

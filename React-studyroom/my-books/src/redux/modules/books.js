@@ -10,7 +10,7 @@ const prefix = 'fds17-my-books/books';
 const {start,success, fail} = createActions('START', 'SUCCESS', 'FAIL', { prefix });
 
 // initial state
-const initialState = {books: [], loading: false, error: null}; // 초기값 설정
+const initialState = {books: null, loading: false, error: null}; // 초기값 설정
 
 // reducer
 const books = handleActions({
@@ -32,16 +32,17 @@ function* getBooksSaga() {
     yield put(start());
     // dispatch(bookStart()); // 로딩이 돌기 시작
     yield delay(2000);
-    // await sleep(2000);
-    // getState는 전체 스테이트
+
+    const previousBooks = yield select(state => state.books.books);
+
+    if (previousBooks !== null) return;
     
     // const books = await BookService.getBooks(getState().auth.token);
     const token = yield select(state => state.auth.token);
     const books = yield call(BookService.getBooks, token); 
-    
     // dispatch(bookSuccess(books));
     yield put(success(books));
-
+    
   }catch (error) {
     // dispatch(bookFail(error));
     yield put(fail(error));
@@ -51,11 +52,11 @@ function* getBooksSaga() {
 function* addBookSaga(action) {
   // 로직
   try {
-    const book = action.payload;
-    const books = yield select(state => state.books.books); // []
-    yield put(success(produce(books, (draft) => {
-      draft.push(book);
-    })));
+    const token = yield select(state => state.auth.token);
+    const book = yield call(BookService.addBook, token, action.payload); 
+
+    const books = yield select(state => state.books.books); 
+    yield put(success([book,...books])); // 클라이언트
     yield put(push('/'))
   }catch (error) {
     // dispatch(bookFail(error));

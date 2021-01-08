@@ -410,8 +410,6 @@ Signin.jsx에서도 api호출해서 로그인을 하고 잇으니 redux로 바�
 - auth.js
 
 ```js
-
-
 // namespace
 const namespace = 'fds17-my-books/auth';
 
@@ -498,7 +496,7 @@ export default function auth(state = initialState, action) {
         return state;
   }
 }
-
+			
 // action creators
 export const signinStart = () => ({
   type: START

@@ -29,8 +29,8 @@ export default function BookList({ books, loading, error, getBooks }) {
           <button onClick={getBooks}>reload</button>
           <Link to="/add">Add</Link>
         </p>
-        {books.length === 0 && <p>데이터가 없습니다.</p>}
-        {books.length !== 0 && books.map((book) => {
+        {books && books.length === 0 && <p>데이터가 없습니다.</p>}
+        {books && books.length !== 0 && books.map((book) => {
           return <BookItem {...book} key= {book.bookId}/>
         })}
       </div>

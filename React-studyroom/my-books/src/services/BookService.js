@@ -7,7 +7,7 @@ export default class BookService {
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.data;
+    return response.data.reverse();
   }
   
   static async getBook(token, bookId) {
@@ -20,4 +20,14 @@ export default class BookService {
     );
     return response.data;
   }
+
+  static async addBook(token, book) {
+    const response = await axios.post(BOOK_API_URL, book, {
+      headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+  
+  return response.data;
+}
 }
