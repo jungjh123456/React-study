@@ -413,3 +413,958 @@ Provider,injectObserver와 이 스토어 안에 있는 Observerble하고 action�
 
 
 MobxBookListContainer.jsx를 원래 대로 돌아가 보자.
+
+- MobxBookListContainer.jsx
+
+```js
+import { inject, observer } from 'mobx-react';
+import React from 'react';
+import BookList from '../components/BookList';
+
+@inject('bookStore')
+@observer
+class BookListContainer extends React.Component {
+	// redux 와의 연결고리
+	// const books = useSelector((state) => state.books.books);
+	// const loading = useSelector((state) => state.books.loading);
+	// const error = useSelector((state) => state.books.error);
+
+	// const dispatch = useDispatch();
+
+	// const getBooks = useCallback(async () => {
+	// 	dispatch(getBooksSagaStart());
+	// }, [dispatch]);
+
+	render() {
+		const { books, loading, error } = this.props.bookStore;
+		console.log(books); // []
+		return <BookList books={books} loading={loading} error={error} getBooks={this.getBooks} />;
+	}
+
+	getBooks = () => {};
+}
+
+export default BookListContainer;
+
+```
+
+이렇게 하고 BookStore.js 에 가서 
+
+- BookStore.js
+
+```js
+import { observable, makeObservable, action } from 'mobx';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+	@action addBook = (book) => {
+		console.log(book);
+		this.books.push(book);
+	};
+}
+
+export default BookStore;
+
+```
+
+observable 관찰할 아이를 만든다.
+
+
+
+getBooks라는 아이는 원레 BookList가서 서버에서 데이터 받아서 주는 아이였다. 그래서 각종 미들웨어를 사용해서 getBooksSagaStart를 해서 줬었는데 이번엔 아니라 이렇게 만들어 보자.
+
+```js
+import { inject, observer } from 'mobx-react';
+import React from 'react';
+import BookList from '../components/BookList';
+import BookService from '../services/BookService';
+
+@inject('bookStore')
+@observer
+class BookListContainer extends React.Component {
+	// redux 와의 연결고리
+	// const books = useSelector((state) => state.books.books);
+	// const loading = useSelector((state) => state.books.loading);
+	// const error = useSelector((state) => state.books.error);
+
+	// const dispatch = useDispatch();
+
+	// const getBooks = useCallback(async () => {
+	// 	dispatch(getBooksSagaStart());
+	// }, [dispatch]);
+
+	render() {
+		const { books, loading, error } = this.props.bookStore;
+		console.log(books); // []
+		return <BookList books={books} loading={loading} error={error} getBooks={this.getBooks} />;
+	}
+
+	getBooks = async () => {
+		try {
+			start();
+			const token = localStorage.getItem('token');
+			const books = await BookService.getBooks(token);
+			success(books);
+		} catch (error) {
+			fail(error);
+		}
+	};
+}
+
+export default BookListContainer;
+
+```
+
+이렇게 원레는 이런 함수들은 원레는  리덕스에서 가져왔었는데 지금은 store를 들고 다니기 때문에 스토어에서 꺼내오자.
+
+```js
+	getBooks = async () => {
+		const { bookStore } = this.props;
+		try {
+			bookStore.start();
+			const token = localStorage.getItem('token');
+			const books = await BookService.getBooks(token);
+			bookStore.success(books);
+		} catch (error) {
+			bookStore.fail(error);
+		}
+	};
+```
+
+이렇게 bookStore.start 들은 각각 BookStore에 다 있어야 한다.
+
+BookStore에 있는 것들은 다 동기다. async가 아니라
+
+- BookStore.js
+
+```js
+import { observable, makeObservable, action } from 'mobx';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+	@action addBook = (book) => {
+		console.log(book);
+		this.books.push(book);
+	};
+
+	@action start = () => {
+		this.books = [];
+		this.loading = true;
+		this.error = null;
+	};
+
+	@action success = (books) => {
+		this.books = books;
+		this.loading = false;
+		this.error = null;
+	};
+
+	@action fail = (error) => {
+		this.books = [];
+		this.loading = false;
+		this.error = error;
+	};
+}
+
+export default BookStore;
+
+```
+
+
+
+다시 MobxBookListContainer.jsx로 돌아가서
+
+
+
+![image-20210112234135404](/Users/apple/Library/Application Support/typora-user-images/image-20210112234135404.png)
+
+이렇게 잘. 들어왔다.
+
+- MobxBookListContainer.jsx
+
+```js
+import { inject, observer } from 'mobx-react';
+import React from 'react';
+import BookList from '../components/BookList';
+import BookService from '../services/BookService';
+
+@inject('bookStore')
+@observer
+class BookListContainer extends React.Component {
+	render() {
+		const { books, loading, error } = this.props.bookStore;
+		return <BookList books={books} loading={loading} error={error} getBooks={this.getBooks} />;
+	}
+
+	getBooks = async () => {
+		const { bookStore } = this.props;
+		try {
+			bookStore.start();
+			const token = localStorage.getItem('token');
+			const books = await BookService.getBooks(token);
+			bookStore.success(books);
+		} catch (error) {
+			bookStore.fail(error);
+		}
+	};
+}
+
+export default BookListContainer;
+
+```
+
+이제 함수형으로 만들어 보자.
+
+데코레이터는 함수다. 
+
+- MobxBookListContainer.jsx
+
+```js
+import { inject, observer } from 'mobx-react';
+import React, { useCallback } from 'react';
+import BookList from '../components/BookList';
+import BookService from '../services/BookService';
+
+// @inject('bookStore')
+// @observer
+// class BookListContainer extends React.Component {
+// 	render() {
+// 		const { books, loading, error } = this.props.bookStore;
+// 		return <BookList books={books} loading={loading} error={error} getBooks={this.getBooks} />;
+// 	}
+
+// 	getBooks = async () => {
+// 		const { bookStore } = this.props;
+// 		try {
+// 			bookStore.start();
+// 			const token = localStorage.getItem('token');
+// 			const books = await BookService.getBooks(token);
+// 			bookStore.success(books);
+// 		} catch (error) {
+// 			bookStore.fail(error);
+// 		}
+// 	};
+// }
+
+// export default BookListContainer;
+
+export default inject('bookStore')(
+	observer(({ bookStore }) => {
+		const { books, loading, error } = bookStore;
+		const getBooks = useCallback(async () => {
+			try {
+				bookStore.start();
+				const token = localStorage.getItem('token');
+				const books = await BookService.getBooks(token);
+				bookStore.success(books);
+			} catch (error) {
+				bookStore.fail(error);
+			}
+		}, [bookStore]);
+		return <BookList books={books} loading={loading} error={error} getBooks={getBooks} />;
+	})
+);
+
+// export default BookListContainer;
+
+```
+
+이렇게 변한다.
+
+bookStore말고 다른 Store를 만들어 보자.
+
+그래서 mobx폴더에 AuthStore.js를 만들자.
+
+- AuthStore.js
+
+```js
+import { makeObservable, observable } from 'mobx';
+
+export default class AuthStore {
+	@observable token = null;
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+}
+```
+
+그리고 BookStore처럼 해주자.
+
+```js
+import { makeObservable, observable, action } from 'mobx';
+
+export default class AuthStore {
+	@observable token = null;
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+
+	@action start = () => {
+		this.token = null;
+		this.loading = true;
+		this.error = null;
+	};
+
+	@action success = (token) => {
+		this.token = token;
+		this.loading = false;
+		this.error = null;
+	};
+
+	@action fail = (error) => {
+		this.token = null;
+		this.loading = false;
+		this.error = error;
+	};
+}
+
+```
+
+이제 얘를 만들어서 provider에게 넣어줘야한다.
+
+App.js에 가서 넣어보자.
+
+
+
+```js
+import AuthStore from './mobx/AuthStore';
+const authStore = new AuthStore();
+
+<MoxProvier bookStore={bookStore} authStore={authStore}>
+				<Provider store={store}>
+					<ConnectedRouter history={history}>
+						<Switch>
+							<Route path="/add" component={Add} />
+							<Route path="/signin" component={Signin} />
+							<Route path="/" exact component={Home} />
+							<Route component={NotFound} />
+						</Switch>
+					</ConnectedRouter>
+				</Provider>
+			</MoxProvier>
+```
+
+이렇게 준다. 그러면 authStore를 사용하는 쪽은 authStore를 @inject해야한다. 그래서 containers에 하나 더 만든다.
+
+MobxSigninContainer.jsx 로 만들자.
+
+
+
+```js
+import { inject, observer } from 'mobx-react';
+import React, { useCallback } from 'react';
+import { useHistory } from 'react-router-dom';
+import Signin from '../components/Signin';
+import AuthService from '../services/AuthService';
+
+export default inject('authStore')(
+	observer(({ authStore }) => {
+		const { loading, error } = authStore;
+		const history = useHistory();
+		const signin = useCallback(
+			async (email, password) => {
+				try {
+					authStore.start();
+					const token = await AuthService.login(email, password);
+					localStorage.setItem('token', token);
+					authStore.success(token);
+					history.push('/');
+				} catch (error) {
+					authStore.fail(error);
+				}
+			},
+			[authStore, history]
+		);
+
+		return <Signin loading={loading} error={error} signin={signin} />;
+	})
+);
+
+```
+
+이렇게 하면 된다. 
+
+자 그러면 로그인하고 이 결과물이 오니까 서비스에서 알아서 잘 처리해주니까 바꿔치기 하자. 
+
+page에 signin가서
+
+```js
+import { Redirect } from 'react-router-dom';
+import withToken from '../hocs/withToken';
+import SigninContainer from '../containers/MobxSigninContainer';
+import { useSelector } from 'react-redux';
+
+function SigninPage() {
+	const token = useSelector((state) => state.auth.token);
+	if (token !== null) {
+		return <Redirect to="/" />;
+	}
+
+	return <SigninContainer />;
+}
+
+export default SigninPage;
+
+```
+
+이렇게 바꿔치기 하고 다시 로그인하면 된다.
+
+history가 사용이 안될 것이다 리덕스로 전환하고 mobx를 쓰고 있기 때문에 리덕스의 history가 useRouter의 history가 같은 동작을 보장하기 힘들어서 제대로 history를 먹을려면 App.js 만들때 만든 history를 사용해야 한다. 일단 냅두자.
+
+토큰이 어디에 저장에 있을까? Mobx의 AuthStore에 관리하고 있다.  그래서 localStorage에서 얻어오지 말고  bookStore말고 AuthStore에서가져와야한다. 그러면 어떻게 하면 되나
+
+- MobxBookListContainer.jsx
+
+```js
+import { inject, observer } from 'mobx-react';
+import React, { useCallback } from 'react';
+import BookList from '../components/BookList';
+import BookService from '../services/BookService';
+
+export default inject(
+	'bookStore',
+	'authStore'
+)(
+	observer(({ bookStore, authStore }) => {
+		const { books, loading, error } = bookStore;
+		const { token } = authStore;
+		const getBooks = useCallback(async () => {
+			try {
+				bookStore.start();
+				const books = await BookService.getBooks(token);
+				bookStore.success(books);
+			} catch (error) {
+				bookStore.fail(error);
+			}
+		}, [bookStore, token]);
+		return <BookList books={books} loading={loading} error={error} getBooks={getBooks} />;
+	})
+);
+
+// export default BookListContainer;
+
+```
+
+이렇게 할 수 있다.  근데 새로고침하면 토큰은 App.js에 create할때 token이 create.js에 들어오고 있다. 그래서 redux에 저장된다. 그래서 mobX도 create 시점에 AuthStore가 new 될때 즉 
+
+- AuthStore.js
+
+```js
+import { makeObservable, observable, action } from 'mobx';
+
+export default class AuthStore {
+	@observable token = null;
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+		this.token = localStorage.getItem('token');
+	}
+
+	@action start = () => {
+		this.token = null;
+		this.loading = true;
+		this.error = null;
+	};
+
+	@action success = (token) => {
+		this.token = token;
+		this.loading = false;
+		this.error = null;
+	};
+
+	@action fail = (error) => {
+		this.token = null;
+		this.loading = false;
+		this.error = error;
+	};
+}
+
+```
+
+이렇게 생성할 때 만들어 줘야 한다.
+
+뭔가 MobxSigninContainer에 비동기 로직이 있는게 싫다. 
+
+BookStore로 가서
+
+```js
+import { observable, makeObservable, action } from 'mobx';
+import BookService from '../services/BookService';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+	@action addBook = (book) => {
+		console.log(book);
+		this.books.push(book);
+	};
+
+	@action start = () => {
+		this.books = [];
+		this.loading = true;
+		this.error = null;
+	};
+
+	@action success = (books) => {
+		this.books = books;
+		this.loading = false;
+		this.error = null;
+	};
+
+	@action fail = (error) => {
+		this.books = [];
+		this.loading = false;
+		this.error = error;
+	};
+
+	getBooks = async (token) => {
+		try {
+			this.start();
+			const books = await BookService.getBooks(token);
+			this.success(books);
+		} catch (error) {
+			this.fail(error);
+		}
+	};
+}
+
+export default BookStore;
+
+```
+
+이렇게 getBooks를 추가하고 
+
+- MobxBookListContainer.jsx
+
+```js
+export default inject(
+	'bookStore',
+	'authStore'
+)(
+	observer(({ bookStore, authStore }) => {
+		const { books, loading, error } = bookStore;
+		const { token } = authStore;
+		const getBooks = useCallback(async () => {
+			bookStore.getBooks(token);
+		}, [bookStore, token]);
+		return <BookList books={books} loading={loading} error={error} getBooks={getBooks} />;
+	})
+);
+
+```
+
+이렇게 정리한다.
+
+
+
+근데 다시 BookStore를 보면 액션 다는 아이는 동기 함수라고 말했었다. 그냥 동기 함수로서 하나하나를 처리하는 거 말고 async로 처리하는데 이렇게 액션을 나눠서 처리할 수도 있고 그냥 
+
+```js
+getBooks = async (token) => {
+		try {
+			this.books = [];
+			this.loading = true;
+			this.error = null;
+			const books = await BookService.getBooks(token);
+			this.books = books;
+			this.loading = false;
+			this.error = null;
+		} catch (error) {
+			this.books = [];
+			this.loading = false;
+			this.error = error;
+		}
+	};
+```
+
+이렇게 할 수도 있는데 warning이 뜨고 있다.  액션이라는 보장이 없다.  요 상태에서 
+
+```js
+			this.books = [];
+			this.loading = true;
+			this.error = null;
+```
+
+요 아이들은 액션이라는걸 구분해서 표현해 줘야 한다. 
+
+- BookStore.js
+
+```js
+import { observable, makeObservable, runInAction } from 'mobx';
+import BookService from '../services/BookService';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor() {
+		makeObservable(this);
+	}
+
+	getBooks = async (token) => {
+		try {
+			runInAction(() => {
+				this.books = [];
+				this.loading = true;
+				this.error = null;
+			});
+			const books = await BookService.getBooks(token);
+			runInAction(() => {
+				this.books = books;
+				this.loading = false;
+				this.error = null;
+			});
+		} catch (error) {
+			runInAction(() => {
+				this.books = [];
+				this.loading = false;
+				this.error = error;
+			});
+		}
+	};
+}
+
+export default BookStore;
+
+```
+
+이렇게 만들 수 있다.
+
+token이 다른 스토어에도 있는건데 일부러 authStore에  받아다가 했는데 이렇게 하지말 고 없애고 
+
+- MobxBookListContainer.jsx
+
+```js
+import { inject, observer } from 'mobx-react';
+import React from 'react';
+import BookList from '../components/BookList';
+
+export default inject('bookStore')(
+	observer(({ bookStore, authStore }) => {
+		const { books, loading, error, getBooks } = bookStore;
+		return <BookList books={books} loading={loading} error={error} getBooks={getBooks} />;
+	})
+);
+```
+
+mobx같은 경우 합치는 일을 해야한다.
+
+Mobs 폴더에 RootStore를 만든다.
+
+```js
+import AuthStore from './AuthStore';
+import BookStore from './BookStore';
+
+export default class RootStore {
+	constructor() {
+		this.bookStore = new BookStore(this);
+		this.authStore = new AuthStore(this);
+	}
+}
+
+```
+
+이제 this를 받아서 AuthStore에서
+
+```js
+import { makeObservable, observable, action } from 'mobx';
+
+export default class AuthStore {
+	@observable token = null;
+	@observable loading = false;
+	@observable error = null;
+
+	constructor(rootStore) {
+		makeObservable(this);
+		this.token = localStorage.getItem('token');
+		this.rootStore = rootStore;
+	}
+
+	@action start = () => {
+		this.token = null;
+		this.loading = true;
+		this.error = null;
+	};
+
+	@action success = (token) => {
+		this.token = token;
+		this.loading = false;
+		this.error = null;
+	};
+
+	@action fail = (error) => {
+		this.token = null;
+		this.loading = false;
+		this.error = error;
+	};
+}
+
+```
+
+이렇게 마찬가지로 BookStore에서도.
+
+
+
+```js
+import { observable, makeObservable, runInAction } from 'mobx';
+import BookService from '../services/BookService';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor(rootStore) {
+		makeObservable(this);
+		this.rootStore = rootStore;
+	}
+
+	getBooks = async (token) => {
+		try {
+			runInAction(() => {
+				this.books = [];
+				this.loading = true;
+				this.error = null;
+			});
+			const books = await BookService.getBooks(token);
+			runInAction(() => {
+				this.books = books;
+				this.loading = false;
+				this.error = null;
+			});
+		} catch (error) {
+			runInAction(() => {
+				this.books = [];
+				this.loading = false;
+				this.error = error;
+			});
+		}
+	};
+}
+
+export default BookStore;
+
+```
+
+이렇게 하면 두개의 스토어가 루트 스토어에서 물고 있다.  이제 App.js에서 두개의 store를 안해도 되고 RootStore를 가져가면 된다.
+
+- App.js
+
+```js
+import RootStore from './mobx/RootStore';
+
+const rootStore = new RootStore();
+
+	<MoxProvier {...rootStore}>
+				<Provider store={store}>
+					<ConnectedRouter history={history}>
+						<Switch>
+							<Route path="/add" component={Add} />
+							<Route path="/signin" component={Signin} />
+							<Route path="/" exact component={Home} />
+							<Route component={NotFound} />
+						</Switch>
+					</ConnectedRouter>
+				</Provider>
+			</MoxProvier>
+```
+
+이렇게 한다.  MobxBookListContainer.jsx에서 BookStore에서 토큰을 가져올때
+
+- BookStore.js
+
+```js
+import { observable, makeObservable, runInAction } from 'mobx';
+import BookService from '../services/BookService';
+
+class BookStore {
+	// 관찰할 거면 어떤 데이터를 관찰 할 건지 정해야한다.
+
+	@observable books = []; // 관찰할 아이로 정한거다.
+	@observable loading = false;
+	@observable error = null;
+
+	constructor(rootStore) {
+		makeObservable(this);
+		this.rootStore = rootStore;
+	}
+
+	getBooks = async () => {
+		try {
+			runInAction(() => {
+				this.books = [];
+				this.loading = true;
+				this.error = null;
+			});
+			const token = this.rootStore.authStore.token;
+			const books = await BookService.getBooks(token);
+			runInAction(() => {
+				this.books = books;
+				this.loading = false;
+				this.error = null;
+			});
+		} catch (error) {
+			runInAction(() => {
+				this.books = [];
+				this.loading = false;
+				this.error = error;
+			});
+		}
+	};
+}
+
+export default BookStore;
+
+```
+
+이렇게 토큰을 사용한다.
+
+Redux, Mobx말고 react state management가 있다. 
+
+Recoil이 있다.
+
+
+
+### @observable 사용법 (mobx)
+
+- observable(<value>) 
+  - 데코레이터 없이 사용하는 방식
+  - @ 없이 함수처럼 사용해서 리턴한 객체를 사용
+- @observable <클래스의 프로퍼티>
+  - 데코레이터로 사용하는법
+  - 클래스 내부에 프로퍼티 앞에 붙여서 사용
+  - 한 클래스 안에 열개의 @observable 존재
+
+
+
+```js
+import { observable } from 'mobx';
+
+// array 에 사용
+const list = observable([1, 2, 4]);
+
+// boolean 에 사용
+const isLogin = observable(true);
+
+// literal 객체에 사용
+const age = observable({
+    age: 35
+});
+
+// 클래스의 멤버 변수에 데코레이터로 사용
+class AgeStore {
+    @observable
+    private _age = 35;
+}
+
+const ageStore = new AgeStore();
+```
+
+트래킹
+
+observable은 객체 모든 거를 관찰하겠다는거다. (옵져버 패턴)
+
+
+
+### observer 사용법 (mobx-react)
+
+- *observer(<컴포넌트>);*
+  - *데코레이터 없이 사용하는 방식*
+  - *함수 컴포넌트에 사용*
+
+- *<컴포넌트 클래스> 에 @observer 달아서 처리*
+  - *클래스 컴포넌트에 사용*
+
+
+
+### @computed
+
+getter라고 배운적이 있을 것이다. 클래스에서
+
+```js
+class AgeStore {
+    @observable
+    private _age = 35;
+
+@computed get a() {
+  return "a";
+}
+}
+
+new AgeStore().a
+```
+
+라고 하면 나온다. 그래서 getter앞에 @computed 를 붙일 수 있다. 트래킹하는  observable아이가 변하면 @computed한테 영향을 줘서 변하는 아이한테 computed라고 단다.
+
+
+
+## computed 란 ?
+
+- *getter 에만 붙일수 있다. (setter 부르면 getter 도 실행된다.)*
+- *함수가 아니라 리액티브 하다는 것에 주목*
+- *실제 컴포넌트에서 사용하는 (게터)값들에 달아서 사용하면 최소 범위로 변경할 수 있기 때문에 유용하다.*
+  - *40살이 넘었을때만 나이를 올리면 40살 이하일때는 재랜더링 대상이 아닌 것과 같은 경우*
+  - *내부적으로 고도의 최적화 => 어떻게 ?*
+    - *매번 재계산을 하지 않는다*
+    - *계산에 사용할 observable 값이 변경되지 않으면 재실행하지 않음.*
+    - *다른 computed 또는 reaction 에 의해 호출되지 않으면 재실행하지 않음.*
+    - *observable 과 처리 방식의 차이로 인한 성능 이슈에 주목*
+      - *observable 이 변했는데 computed 가 변하지 않을때 사용에 따른 차이*
+
+
+
+@action state를 동기적으로 변경한다.
+
+@inject와 Provider 
+
+## Provider
+
+- 네, 그 프로바이더가 맞습니다.
+  - *네, 그래서 컨테이너라는 개념을 사용해도 좋습니다.*
+- 프로바이더에 props 로 넣고, @inject 로 꺼내 쓴다고 생각하시면 됩니다.
+  - *상당히 명시적이고, 편합니다.*
+  - 컨테이너를 쓰지 않아도 될것 같습니다.
+    - *props 로 바꿔줍니다.*
+    - *this.props.store*
+
+
+
+### mobs-react-devtools
+
+라는 것이 있다. 이 아이는 편하게 사용할 수 있다.
