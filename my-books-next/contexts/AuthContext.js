@@ -18,7 +18,7 @@ const reducer = (state, action) => {
 };
 
 const initialState = {
-	token: null,
+	token: typeof window === 'undefined' ? null : localStorage.getItem('token'),
 	loading: false,
 	error: null,
 };

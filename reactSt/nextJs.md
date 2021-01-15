@@ -2087,4 +2087,481 @@ const Login = () => {
 
 ![image-20210115232220344](/Users/apple/Library/Application Support/typora-user-images/image-20210115232220344.png)
 
-이렇게 찍힐 것이다.
+이렇게 찍힐 것이다. state가 나온다. 이제 로그인 할때 
+
+- login.jsx
+
+```js
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const state = useAuthState();
+	const dispatch = useAuthDispatch();
+
+```
+
+이 dispatch를 넣고 밑에서 시작할때 
+
+```js
+async function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+		try {
+			dispatch({ type: 'START' });
+			// fetch
+			const response = await fetch('https://api.marktube.tv/v1/me', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+			});
+			const { token } = await response.json();
+			localStorage.setItem('token', token);
+			router.push('/');
+			dispatch({ type: 'SUCCESS', token });
+		} catch (error) {
+			dispatch({ type: 'FAIL', error });
+		}
+	}
+};
+```
+
+이렇게 한다.  그래서 
+
+- login.jsx
+
+```js
+import { useRouter } from 'next/router';
+import { useRef } from 'react';
+import { useAuthDispatch, useAuthState } from '../hooks/useAuth';
+
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const state = useAuthState();
+	const dispatch = useAuthDispatch();
+
+	const router = useRouter();
+
+	return (
+		<div>
+			<h1>Login : {state.loading && <span>loading...</span>}</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={login}>로그인</button>
+			</p>
+		</div>
+	);
+
+	async function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+		try {
+			dispatch({ type: 'START' });
+			// fetch
+			const response = await fetch('https://api.marktube.tv/v1/me', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+			});
+			await sleep(1000);
+			const { token } = await response.json();
+			localStorage.setItem('token', token);
+			router.push('/');
+			dispatch({ type: 'SUCCESS', token });
+		} catch (error) {
+			dispatch({ type: 'FAIL', error });
+		}
+	}
+};
+
+export default Login;
+
+function sleep(ms) {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			resolve();
+		}, ms);
+	});
+}
+
+```
+
+이렇게 하고 해보자. 그러면 잘 될 것이다. 
+
+로그인 함수로 받아보자.
+
+- Login.jsx
+
+```js
+import { useRef } from 'react';
+import { useAuthState } from '../hooks/useAuth';
+
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const state = useAuthState();
+	const login = useLogin();
+
+	return (
+		<div>
+			<h1>Login : {state.loading && <span>loading...</span>}</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={click}>로그인</button>
+			</p>
+		</div>
+	);
+
+	async function click() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+
+		login(email, password);
+	}
+};
+
+export default Login;
+
+```
+
+그리고 이걸 useAuth.js 에서 useLogin을 만들자.
+
+- useAuth.js
+
+```js
+import { useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
+import { useRouter } from 'next/router';
+export const useAuthState = () => {
+	const authContext = useContext(AuthContext);
+
+	return authContext.state;
+};
+
+export const useAuthDispatch = () => {
+	const authContext = useContext(AuthContext);
+
+	return authContext.dispatch;
+};
+
+export const useLogin = () => {
+	const dispatch = useAuthDispatch();
+	const router = useRouter();
+	return async (email, password) => {
+		try {
+			dispatch({ type: 'START' });
+			// fetch
+			const response = await fetch('https://api.marktube.tv/v1/me', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+			});
+			await sleep(1000);
+			const { token } = await response.json();
+			localStorage.setItem('token', token);
+			router.push('/');
+			dispatch({ type: 'SUCCESS', token });
+		} catch (error) {
+			dispatch({ type: 'FAIL', error });
+		}
+	};
+};
+
+function sleep(ms) {
+	return new Promise((resolve) => {
+		setTimeout(() => {
+			resolve();
+		}, ms);
+	});
+}
+
+```
+
+이렇게 만든다.
+
+이러면 잘된다. 
+
+그런데 만약 책을 관리하고 싶으면 책context만들고 hock을 다양한 걸 만들어서 하면 된다. 
+
+그러면 최초 initialState에 tokendmf localStorage.getItem('token')을 넣으면 안돼나?  그러면 최초에 만들때 브라우저에 initial 토큰값을 가져다가 그걸로 reducer를 만드니까 토큰이 있다고 판단한다. 이제부터 어떻게 해야하나
+
+- AuthContext.js
+
+```js
+const initialState = {
+	token: localStorage.getItem('token'),
+	loading: false,
+	error: null,
+};
+```
+
+이렇게 바꾸고 _app.js에서 
+
+```js
+		const token = localStorage.getItem('token')
+```
+
+이렇게 썼었는데 이렇게 쓸 필요가 없어졌다.
+
+- _app.js
+
+```js
+	if (typeof window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null && router.pathname === '/login') {
+			router.push('/');
+		}
+		if (token === null && router.pathname !== '/login') {
+			router.push('/login');
+		}
+	}
+```
+
+얘를 옮기자.
+
+어디로 가나 login.jsx에서 
+
+```js
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const state = useAuthState();
+	const login = useLogin();
+
+	if (typeof window !== 'undefined') {
+		const token = state.token;
+
+		if (token !== null) {
+			router.push('/');
+		}
+	}
+
+```
+
+이렇게 바꿔준다.
+
+그리고 index.js도 마찬가지로
+
+- index.js
+
+```js
+import Head from 'next/head';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { useAuthState } from '../hooks/useAuth';
+
+export default function Home() {
+	const { token } = useAuthState();
+	const router = useRouter();
+	if (typeof window !== 'undefined') {
+		if (token === null) {
+			router.push('/login');
+		}
+	}
+	return (
+		<div>
+			<Head>
+				<title>Create Next App</title>
+				<link rel="icon" href="/favicon.ico" />
+			</Head>
+			<h1>Home</h1>
+			<Link href="/login">/login</Link>
+		</div>
+	);
+}
+
+```
+
+이렇게 바꿔준다.
+
+AuthContext에 있는 initialState에서 문제가 발생한다. 그래서 만약에 window가 undefined가 아닐때만 사용 가능하도록 바꿔야한다.
+
+- AuthContext.js
+
+```js
+const initialState = {
+	token: typeof window === 'undefined' ? null : localStorage.getItem('token'),
+	loading: false,
+	error: null,
+};
+```
+
+이렇게 바꿔준다.
+
+
+
+## api 폴더
+
+api 폴더는 똑같이 api/hello라는 이름으로 만들어 줄수 있다. 그런데 어떻게 호출하는지 직 접 해보자.
+
+- Api/hello
+
+```js
+// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+
+export default (req, res) => {
+	console.log(req);
+	res.statusCode = 200;
+	res.json({ name: 'John Doe' });
+};
+
+```
+
+이러면 콘솔에 안 찍히고 서버쪽에 콘솔이 찍힐 것이다.
+
+![image-20210116000027496](/Users/apple/Library/Application Support/typora-user-images/image-20210116000027496.png)
+
+그래서 여러가지 방법으로 api를 만들 수 있는데 nextjs 하면서 [id].js 이렇게도 만들 수 있는데 
+
+결국에 어떻게 분기를 태워주나 이렇게 할 수 있다.
+
+```js
+// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+
+export default (req, res) => {
+	console.log(req.method);
+
+	if (req.method === 'POST') {
+		//...
+	}
+
+	res.statusCode = 200;
+	res.json({ name: 'John Doe' });
+};
+
+```
+
+![image-20210116000249250](/Users/apple/Library/Application Support/typora-user-images/image-20210116000249250.png)
+
+이렇게 나온다. 이게 말그대로 서버다 express랑 비슷한 상태이다.  
+
+예를들어서 만약 로그인에서 호출을 하는데 호출할때 useAuth에서 
+
+- useAuth.js
+
+```js
+			const response = await fetch('/api/hello', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email, password }),
+      });
+      console.log(await response.json())
+```
+
+이렇게만 해보면 콘솔에서 나온다.
+
+![image-20210116000718546](/Users/apple/Library/Application Support/typora-user-images/image-20210116000718546.png)
+
+JSON-SERVER보다 이게 훨씬 좋다. db조차 필요 없다. 
+
+루트 폴더에 db.json을 만들고
+
+- db.json
+
+```js
+{
+	"hello": "world"
+}
+
+```
+
+
+
+Hello.js에서
+
+```js
+// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export default (req, res) => {
+	const path = join(process.env.PWD, 'db.json');
+	console.log(process.env.PWD);
+	const data = JSON.parse(readFileSync(path).toString());
+	res.statusCode = 200;
+	res.json(data);
+};
+```
+
+이렇게 하면 로그인 버튼을 누르면
+
+![image-20210116001638447](/Users/apple/Library/Application Support/typora-user-images/image-20210116001638447.png)
+
+db.json에 있는것이 나온다. 만약 입력을 한다고 하면 어떻게 해야하나 한번 해보자.
+
+```js
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+export default (req, res) => {
+	const path = join(process.env.PWD, 'db.json');
+	console.log(process.env.PWD);
+	const data = JSON.parse(readFileSync(path).toString());
+	res.statusCode = 200;
+	res.json(data);
+};
+
+```
+
+얘를 복사해서
+
+
+
+api폴더에 새로운 파일을 만들자. add.js를 만들고 갖다 붙이자.
+
+- add.js
+
+```js
+import { readFileSync, writeFileSync } from 'fs';
+import { join } from 'path';
+
+export default (req, res) => {
+	const path = join(process.env.PWD, 'db.json');
+	const data = JSON.parse(readFileSync(path).toString());
+	data.name = 'Mark';
+	writeFileSync(path, JSON.stringify(data));
+	res.statusCode = 200;
+	res.json(data);
+};
+
+```
+
+이렇게 하고 api/add 하면
+
+![image-20210116002014334](/Users/apple/Library/Application Support/typora-user-images/image-20210116002014334.png)
+
+화면에도 출력이 되고 db.json에도 추가가 된다.
+
+- db.json
+
+```js
+{"hello":"world","name":"Mark"}
+```
+
