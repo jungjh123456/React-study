@@ -1422,7 +1422,669 @@ export default MyApp;
 
 
 
+## next로 login구현 
+
+```bash
+npx create-next-app my-books-next
+```
+
+다시 react-next를 만들자.
+
+pages에 login.jsx를 만들자.
+
+- login.jsx
+
+```js
+const Login = () => {
+	return (
+		<div>
+			<h1>Login</h1>
+			<p>
+				<input type="text" />
+			</p>
+			<p>
+				<input type="password" />
+			</p>
+			<p>
+				<button>로그인</button>
+			</p>
+		</div>
+	);
+};
+
+export default Login;
+
+```
+
+이렇게 하자.
+
+이제 간단하게 페이지 이동을 하기 위해 index.js에서
+
+- index.js
+
+```js
+import Head from 'next/head';
+import Link from 'next/link';
+
+export default function Home() {
+	return (
+		<div>
+			<Head>
+				<title>Create Next App</title>
+				<link rel="icon" href="/favicon.ico" />
+			</Head>
+			<h1>Home</h1>
+			<Link href="/login">/login</Link>
+		</div>
+	);
+}
+
+```
+
+이렇게 하면 로그인을 누르면 로그인으로 돌아간다. login.jsx로 가서
+
+```js
+import { useRef } from 'react';
+
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+	return (
+		<div>
+			<h1>Login</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={login}>로그인</button>
+			</p>
+		</div>
+	);
+
+	function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+	}
+};
+
+export default Login;
+
+```
+
+이렇게 하고 로그인 버튼을 누르면 콘솔에는
+
+![image-20210115205325853](/Users/apple/Library/Application Support/typora-user-images/image-20210115205325853.png)
+
+이렇게 잘 찍힌다. 이제 로그인을 시키자. 
+
+여기서 무엇을 쓸 거냐면 contextApi를 쓸 것이다. 
+
+일단  request를 요청할 것인데 보통 axios를 이용하였다. 
+
+nextjs에서 fetchApi가 적용 되어 있다.  fetch를 해보자.
+
+- login.jsx
+
+```js
+import { useRef } from 'react';
+
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+	return (
+		<div>
+			<h1>Login</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={login}>로그인</button>
+			</p>
+		</div>
+	);
+
+	async function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+
+		// fetch
+		const response = await fetch('https://api.marktube.tv/v1/me', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ email, password }),
+		});
+		console.log(await response.json());
+	}
+};
+
+export default Login;
+
+```
+
+이렇게 하면 콘솔에는 아래와 같이 찍힐 것이다.
+
+![image-20210115212129911](/Users/apple/Library/Application Support/typora-user-images/image-20210115212129911.png)
+
+그래서 이걸 
+
+```js
+import {useRouter} from 'next/router';
+  const router = useRouter();
+
+	async function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+
+		// fetch
+		const response = await fetch('https://api.marktube.tv/v1/me', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ email, password }),
+		});
+		const { token } = await response.json();
+		localStorage.setItem('token', token);
+		router.push('/');
+	}
+```
+
+이렇게 한다.
+
+전체 login.jsx
+
+```js
+import {useRouter} from 'next/router';
+import { useRef } from 'react';
+
+const Login = () => {
+	const emailRef = useRef();
+  const passwordRef = useRef();
+  
+  const router = useRouter();
+	return (
+		<div>
+			<h1>Login</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={login}>로그인</button>
+			</p>
+		</div>
+	);
+
+	async function login() {
+		const email = emailRef.current.value;
+		const password = passwordRef.current.value;
+		console.log(email, password);
+
+		// fetch
+		const response = await fetch('https://api.marktube.tv/v1/me', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ email, password }),
+		});
+		const { token } = await response.json();
+		localStorage.setItem('token', token);
+		router.push('/');
+	}
+};
+
+export default Login;
+
+```
+
+이제 누르면 로그인이 될 것이다.
+
+이제 어떻게 하면 되나  
+
+```js
+
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const router = useRouter();
+
+	const token = localStorage.getItem('token');
+
+	if (token !== null) {
+		router.push('/');
+	}
+	return (
+		<div>
+			<h1>Login</h1>
+			<p>
+				<input type="text" ref={emailRef} />
+			</p>
+			<p>
+				<input type="password" ref={passwordRef} />
+			</p>
+			<p>
+				<button onClick={login}>로그인</button>
+			</p>
+		</div>
+	);
+```
+
+이렇게 하면 만약 토큰이 있으면 로그인 창으로 안가게 될 것이다.
+
+그런데 하지만 url에 그대로 login으로 직접 가면 에러가 뜰 것이다. localStorage가 없다고 나온다. 
+
+즉 localhost:3000/login으로 직접 들어가면 서버사이드 렌더링이 내려와야하는데 서버사이드를 login 컴포넌트를 읽다가 localStorage에서 걸린다. 노드 서버가 모른다고 한다. 서버에는 로컬 스토리지가 없다. 
+
+대신에 클라이언트에만 로컬 스토리지가 있는 거니까 할 수 있는 방법이 이런 방법이 있다.
+
+```js
+if (window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null) {
+			router.push('/');
+		}
+	}
+```
+
+window가 undefined가 아니면 그때만 이 로직을 타게 한다. 이게 nextjs에서 가장 중요한 특징중 하나이다.
+
+그런데 이 아이를 login컴포넌트에 두기 싫다. 그래서 공통적인 아이가 있는 _app.js로 보내자.
+
+- _app.js
+
+```js
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps, router }) {
+	if (typeof window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null && router.pathname === '/login') {
+			router.push('/');
+		}
+		if (token === null && router.pathname !== '/login') {
+			router.push('/login');
+		}
+	}
+	return <Component {...pageProps} />;
+}
+
+export default MyApp;
+
+```
+
+이렇게 하면 된다.
+
+ 토큰이 있으면 url에 login해도 안가진다. 그런데 깜빡거리는 것이 보였을 것이다.
+
+그래서 최초의 이 것이 되기 전에 되어야 한다. 라이프스타일 상 componentWillDidmount이다. 그래서 라이프사이클을 이용하려면 class로 사용해야한다.
+
+- _app.js
+
+```js
+import React from 'react';
+import '../styles/globals.css';
+
+class MyApp extends React.Component {
+	componentWillMount() {
+		if (typeof window !== 'undefined') {
+			const token = localStorage.getItem('token');
+			const { router } = this.props;
+
+			if (token !== null && router.pathname === '/login') {
+				router.push('/');
+			}
+			if (token === null && router.pathname !== '/login') {
+				router.push('/login');
+			}
+		}
+	}
+	render() {
+		const { Component, pageProps } = this.props;
+		return <Component {...pageProps} />;
+	}
+}
+export default MyApp;
+
+```
+
+이렇게 하면 잘 나온다. 하지만 url에 토큰이 있는데도 불구하고 로그인 페이지에 들어간다. 그러면 일단
+
+루트에다가 contexts 폴더를 만들고 파일을 하나 만들자. 
+
+MyAppProvider.js
+
+```js
+import React from 'react';
+
+const MyAppProvider = React.createContext();
+
+export default MyAppProvider;
+
+```
+
+이렇게 하고 MyAppProvider를 _app.js 에서 공통적으로 쓰자.
+
+```js
+
+import React from 'react';
+import MyAppProvider from '../contexts/MyAppProvider';
+import '../styles/globals.css';
+
+class MyApp extends React.Component {
+	componentWillMount() {
+		if (typeof window !== 'undefined') {
+			const token = localStorage.getItem('token');
+			const { router } = this.props;
+
+			if (token !== null && router.pathname === '/login') {
+				router.push('/');
+			}
+			if (token === null && router.pathname !== '/login') {
+				router.push('/login');
+			}
+		}
+	}
+	render() {
+		const { Component, pageProps } = this.props;
+		return (
+			<MyAppProvider.Provider value={{}}>
+				<Component {...pageProps} />
+			</MyAppProvider.Provider>
+		);
+	}
+}
+export default MyApp;
+
+```
+
+이렇게 바꾸자. 이제 안가지지만 살짝 보이는게 보일것이다. 
+
+왜 살짝 보일까? 서버 사이드에서는 이미 로그인 페이지를 렌더를 제작을 한거다. 그거를 내려준 다음에 그다음에 componentWillDidmount할때 일어났기 때문에 실제로 안보이게 할려고 하려면 지금 방법이 아니라 처음에는 안보이게 했다가 끝나면 보이게 하는 방식으로 처리를 해야한다. 
+
+처음에 내려올때 빈 페이지를 내려줘야 한다. 다시 함수형으로 넘어가자.
+
+- _app.js
+
+```js
+import React from 'react';
+import MyAppProvider from '../contexts/MyAppProvider';
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps, router }) {
+	if (typeof window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null && router.pathname === '/login') {
+			router.push('/');
+		}
+		if (token === null && router.pathname !== '/login') {
+			router.push('/login');
+		}
+	}
+}
+
+export default MyApp;
+```
+
+이렇게 바꾸고 이제 해결을 해보자. MyAppProvider.js를 이름을 바꾸자. MyAppContext로 바꾸자.
+
+- MyAppContext.js
+
+```js
+import React from 'react';
+
+const MyAppContext = React.createContext();
+
+export const MyAppProvider = ({ children }) => {
+	return <MyAppContext.Provider>{children}</MyAppContext.Provider>;
+};
+```
+
+이렇게 바꾸고 _app.js에 가서
+
+- _app.js
+
+```js
+import React from 'react';
+import { MyAppProvider } from '../contexts/MyAppContext';
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps, router }) {
+	if (typeof window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null && router.pathname === '/login') {
+			router.push('/');
+		}
+		if (token === null && router.pathname !== '/login') {
+			router.push('/login');
+		}
+	}
+	return (
+		<MyAppProvider>
+			<Component {...pageProps} />
+		</MyAppProvider>
+	);
+}
+
+export default MyApp;
+```
+
+이렇게 하고 value는 MyAppContext.js에 넣자.
+
+- MyAppContext.js
+
+```js
+import { useRouter } from 'next/router';
+import React from 'react';
+
+const MyAppContext = React.createContext();
+
+const reducer = (state, action) => {
+	switch (action.type) {
+		case 'START':
+			return { token: null, loading: true, error: null };
+		case 'SUCCESS':
+			return { token: action.token, loading: false, error: null };
+		case 'FAIL':
+			return { token: null, loading: false, error: action.error };
+		default:
+			return state;
+	}
+};
+
+const initialState = {
+	token: null,
+	loading: false,
+	error: null,
+};
+
+export const MyAppProvider = ({ children }) => {
+	const [state, dispatch] = useRouter(reducer, initialState);
+	return <MyAppContext.Provider value={{ state, dispatch }}>{children}</MyAppContext.Provider>;
+};
+
+```
+
+이렇게 넣고 파일 이름을 MyAppContext.js 에서 AuthContext.js로 바꾸자 그러면 나중에 BookContext.js 도 이렇게 만들면 된다.
+
+_app.js에 가서도 바꿔 주자.
+
+- _app.js
+
+```js
+import React from 'react';
+import { AuthProvider } from '../contexts/AuthContext';
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps, router }) {
+	if (typeof window !== 'undefined') {
+		const token = localStorage.getItem('token');
+
+		if (token !== null && router.pathname === '/login') {
+			router.push('/');
+		}
+		if (token === null && router.pathname !== '/login') {
+			router.push('/login');
+		}
+	}
+	return (
+		<AuthProvider>
+			<Component {...pageProps} />
+		</AuthProvider>
+	);
+}
+
+export default MyApp;
+```
+
+다시 AuthContext.js 로가서
+
+```js
+import React, { useReducer } from 'react';
+
+const AuthContext = React.createContext();
+
+export default AuthContext;
+
+const reducer = (state, action) => {
+	switch (action.type) {
+		case 'START':
+			return { token: null, loading: true, error: null };
+		case 'SUCCESS':
+			return { token: action.token, loading: false, error: null };
+		case 'FAIL':
+			return { token: null, loading: false, error: action.error };
+		default:
+			return state;
+	}
+};
+
+const initialState = {
+	token: null,
+	loading: false,
+	error: null,
+};
+
+export const AuthProvider = ({ children }) => {
+	const [state, dispatch] = useReducer(reducer, initialState);
+	return <AuthContext.Provider value={{ state, dispatch }}>{children}</AuthContext.Provider>;
+};
+
+```
 
 
 
+그리고 hooks 폴더를 만들고 useAuth.js를 만들자.
 
+![image-20210115230853266](/Users/apple/Library/Application Support/typora-user-images/image-20210115230853266.png)
+
+- useAuth.js
+
+```js
+import { useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
+
+const useAuth = () => {
+	useContext(AuthContext);
+};
+
+```
+
+이렇게 하고 AuthContext.js로 가서 
+
+- AuthContext.js
+
+```js
+export default AuthContext;
+```
+
+이걸 추가해주자.
+
+useAuth에 가서
+
+- useAuth.js
+
+```js
+import { useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
+
+const useAuth = () => {
+	const authContext = useContext(AuthContext);
+
+	return authContext.state;
+};
+
+export default useAuth;
+
+```
+
+이렇게 만들자. useContext를 통해서 컨텍스트 갖고 오고 state를 가져오고 이 state는 무엇일까? 그건 AuthContext.js에 있는 
+
+```js
+export const AuthProvider = ({ children }) => {
+	const [state, dispatch] = useRouter(reducer, initialState);
+	return <AuthContext.Provider value={{ state, dispatch }}>{children}</AuthContext.Provider>;
+};
+```
+
+value에 있는 state이다.  그런데 useAuth에서 한  이런 느낌으로 안하고 다른 느낌으로 할 수 있다.
+
+- useAuth.js
+
+```js
+import { useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
+
+export const useAuthState = () => {
+	const authContext = useContext(AuthContext);
+
+	return authContext.state;
+};
+
+export const useAuthDispatch = () => {
+	const authContext = useContext(AuthContext);
+
+	return authContext.dispatch;
+};
+
+```
+
+이렇게 가져올수 있다. 이제 어디서든 useAuthState를 호출하면 state를 가져올 수 있고 useAuthDispatch를 호출하면 dispatch를 가져 올 수 있으니 state받아오고 dispatch 액션 날릴 수 있다. 한번 해보자.
+
+login으로 가서 해보자.
+
+- login.jsx
+
+```js
+const Login = () => {
+	const emailRef = useRef();
+	const passwordRef = useRef();
+
+	const state = useAuthState();
+	console.log(state);
+
+```
+
+이렇게 해보자. 그러면 콘솔에는 
+
+![image-20210115232220344](/Users/apple/Library/Application Support/typora-user-images/image-20210115232220344.png)
+
+이렇게 찍힐 것이다.
