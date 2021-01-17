@@ -1619,7 +1619,7 @@ class Signin extends React.Component {
     // });
     try {
     // 호출 시작 => 로딩 시작
-    const response = await axios.port('https://api.marktube.tv/v1/me', {
+    const response = await axios.post('https://api.marktube.tv/v1/me', {
       email,
       password,
     });

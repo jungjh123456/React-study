@@ -500,7 +500,7 @@ import reportWebVitals from './reportWebVitals';
 import store from './store';
 import { addTodo } from './actions';
 
-console.log(store.state());
+console.log(store.getstate());
 store.dispatch(addTodo('장보기'));
 ReactDOM.render(
   <React.StrictMode>
@@ -529,9 +529,9 @@ import reportWebVitals from './reportWebVitals';
 import store from './store';
 import { addTodo } from './actions';
 
-console.log(store.state());
+console.log(store.getstate());
 store.dispatch(addTodo('장보기'));
-console.log(store.state());
+console.log(store.getstate());
 
 ReactDOM.render(
   <React.StrictMode>
@@ -3017,21 +3017,25 @@ export default TodoListContainer;
 - Form.jsx
 
 ```js
-import TodoList from "../components/TodoList";
-import { completeTodo } from '../actions';
-import { useDispatch, useSelector } from "react-redux";
+import { useCallback } from "react";
+import { useDispatch } from "react-redux";
+import { addTodo } from "../actions";
+import Form from "../components/Form";
 
-const TodoListContainer = () => {
-  const todos = useSelector((state) => state.todos);
+const FormContainer = () => {
   const dispatch = useDispatch();
+  // function add(todo) {
+  //   dispatch(addTodo(todo))
+  // }
+  const add = useCallback((todo) => { // add는 매번 생겨나서 2번째 인수로 넣는다.
+    dispatch(addTodo(todo));
+  }, [dispatch]
+  ); // 같은 참조를 가진 같은 함수다.
 
-  function complete(index) {
-    dispatch(completeTodo(index))
-  }
-  return <TodoList todos={todos} complete={complete} />
+  return <Form add={add}/>
 }
-  
-export default TodoListContainer;
+
+export default FormContainer;
 ```
 
 여기까지가 기본 리덕스이다.
