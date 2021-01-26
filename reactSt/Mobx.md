@@ -6,8 +6,8 @@
   - 컴포넌트에서 사용하는 데코레이터가 있다. => @observer: 관찰자(그 관찰한 가능한 아이를 관찰한다.)
 - TypeScript 가 Base 인 라이브러리이다. => 타입 스크립트에서 특별하게 취급되고 있는 데코레이터를 적극 취급한다.
 - Redux 와 마찬가지로, 스토어에 필요한 부분과 리액트에 필요한 부분이 있다. 
-  - npm i mobs -D
-  - npm i mobs-react -D
+  - npm i mobx -D
+  - npm i mobx-react -D
 - 리덕스와 다르게 단일 스토어를 강제하진 않는다.
 
 
