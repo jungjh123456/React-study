@@ -16,3 +16,5 @@
 
 
 집합 자료구조
+
+intersection observer
