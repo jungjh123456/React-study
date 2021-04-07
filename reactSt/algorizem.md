@@ -318,14 +318,83 @@ f(n)은 C2G(n)과 C1g(n)의 사이에 있다.
 
 ### 배열의 활용
 
+- 배열의 생성
+- 자료의 삽입
+- 자료의 삭제
 
+Array는 단독으로 쓰이지 않고 다른 자료구조에서 array를 활용해서 사용한다.
 
+## JavaScript와 배열
 
+- JavaScript의 Array는 배열 자료구조와는 다르며 고수준의 기능을 포함한다.
+- JavaScript에서 배열과 유사한 자료구조는 형식화 배열이다. (특정한 타입만 들어갈 수 있는 배열)
+  - Int8Array, Uint8Array, Uint8ClampledArray, Int16Array, Uint16Array, Int32Array, Uint32Array, Float32Array, Float64Array
+  - 형식화 배열은 특정 형식의 Element만을 허용한다.
+  - 형식화 배열은 자료가 메모리에 연속적으로 배치되는 것을 보장한다.
+  - C언어 수준의 최적화를 보장한다.
 
+## List
 
+### 리스트란 
+
+- 순차적인 데이터를 다루기 위한 추상 자료형
+- 리스트에는 동일한 값이 여럿 존재할 수 있으며, 이는 서로 다른 항목으로 구분된다.
+
+### 리스트의 연산자
+
+1. 비어있는 리스트를 생성하는 생성자
+2. 리스트가 비어있는지 확인하는 연산자.
+3. 리스트의 앞에 개체를 삽입하는 연산자. (prepend)
+
+prepend는 앞에다가 개체를 삽입한다.
+
+4. 리스트의 뒤에 개체를 삽입하는 연산자. (Append)
+5. 리스트의 첫 머리를 결정하는 연산자. (setHead)
+6. 주어진 인덱스에 해당하는 요소에 접근하는 연산자 (Access) 
+7. 주어진 인덱스에 새로운 요소를 삽입하는 연산자. (insert)
+8. 주어진 인덱스에 해당하는 요소를 제거하는 연산자 (Remove)
+
+## 리스트의 구현
+
+- 배열 리스트
+  - 배열을 기반으로 만들어진 리스트
+  - 가변 길이를 가지는 배열을 이용하여 리스트 구현
+  - Array List에서 각 연산의 복잡도
+    - isEmpty(): O(1)
+    - Prepend(): O(n)
+    - Append(): O(n) (조건부 O(1))
+    - setHead(index): O(1)
+    - Access(index): O(1)
+    - Insert(item,index): O(n)
+    - Remove(index): O(n)
+- 연결 리스트
+  - 단방향 또는 양방향
+  - 각 요소는 값과 다음 요소를 가르키는 연결로 구성
+  - 연결 리스트에서 각 연산의 복잡도
+    - isEmpty(): O(1)
+    - Prepend(): O(1)
+    - Append(): O(n)
+    - setHead(index): O(n)
+    - Access(index): O(n)
+    - Insert(item,index): O(1)
+    - Remove(index): O(1)
+
+## JavaScript와 리스트
+
+- JavaScript의 Array는 추상 자료형인 리스트를 구현한 자료 구조이다.
+- Array에 구현된 리스트의 기능
+  - 비어있는 리스트를 생성하는 생성자 (constructor)
+  - 리스트가 비어있는지 확인하는 연산자 (array.length)
+  - 리스트의 앞에 개체를 삽입 하는 연산자 (array.unshift)
+  - 리스트의 뒤에 개체를 삽입하는 연산자(array.push)
+  - 리스트의 첫 머리를 결정하는 연산자 (array.slice)
+  - 주어진 인덱스에 해당하는 요소에 접근하는 연산자(array[index])
+  - 주어진 인덱스에 새로운 요소를 삽입하는 연산자 (array.slice + array.join)
+  - 주어진 인덱스에 해당하는 요소를 제거하는 연산자 (array.splice)
 
 ```js
 function solution(answers) {
+  
 	let sp1 = [1, 2, 3, 4, 5];
 	let sp2 = [2, 1, 2, 3, 2, 4, 2, 5];
 	let sp3 = [3, 3, 1, 1, 2, 2, 4, 4, 5, 5];
