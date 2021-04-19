@@ -2,6 +2,22 @@
 
 간단하게 해보자.
 
+
+
+{
+
+​    "id": "jungjh11a232",
+
+​    "password": "wjdwlgns17",
+
+​    "name": "정지훈",
+
+​    "nickname": "aaassaa",
+
+​    "age": 35
+
+}
+
 ```bash
 npx create-next-app
 ```
